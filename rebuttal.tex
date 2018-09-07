@@ -1,0 +1,46 @@
+\documentclass{article}
+
+\usepackage{nips_2018_author_response}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+
+\begin{document}
+We give thanks to all for spending the effort to understand our submission and for the encouraging feedback!
+
+\textbf{Reviewer 1:}
+We could not achieve the $\sqrt{T}$ with a relaxation algorithm. While it is not even known how to do this in the simpler case of bandit feedback, $\sqrt{T}$ would be a good contribution (we have some ideas). We will expand the related works section (especially adding citation about other partial feedback games) and will work on the unclear sections of the proof. Thanks for the specific suggestions; we will make the corrections and have tried to answer your questions below.
+
+\textit{L125:} The matrix L is fixed, but $\ell_i$ is the expected loss under the adversary's empirical distribution and can still be impossible to learn. We'll clarify.
+\textit{L129:} to calculate $v_{i,j,k}$, it suffices to find a pseudo inverse of $S$.
+Alg1: EXP4 used the estimator described on L123, but the recentering is novel (actually concurrently proposed by [11]).
+\textit{L258:} yes, this is a good point.
+\textit{L262:} ``all fixed actions'' means that, for every action, we include the policy that always selects that action. A lower bound with just an arbitrary policy class was too weak of a result, as it is easy to make all the policies bad.
+%\textit{L271:} rank nullity theorem
+
+
+\textbf{Reviewer 3:}
+Models:
+Our intention was not to be coy about the i.i.d. assumption, which is critical (it is first mentioned in the abstract, L13), but we agree that all model assumptions should be very clear, and we will emphasize that the EXP4.PM regret bounds hold for adaptive $x_t$, $j_t$, but the relaxation algorithm requires $x_t$ to be i.i.d. We will clarify in the intro and the section headers.
+
+We completely agree with the reviewer: the interesting questions are how $\Pi$ and $R_T$ interact. We have only taken the coarsest view, either finding bounds in terms of $\log |\Pi|$ or the Rademacher complexity-like term in Corollary 1. Having said that, no paper in the contextual bandit setting has a more refined analysis either. However, the partial monitoring setting is more nuanced than the bandit setting; indeed, if we take $\Pi$ to be the set of constant actions, then $\sqrt{T}$ regret is possible with only local observability, so there is possibly a more subtle boundary for the rates.
+
+Additionally, there are more refined, game-dependent notions of complexity where the uniform distribution over the hypercube in the complexity term is replaced with a uniform distribution over the columns of $H$, and hence the regret will depend on the structure of the feedback through more than a dependence on the number of actions. We omitted these arguments for brevity (and they also require $O(N^2)$ computation), but are working on using them for a more refined bound.
+
+The complexity measure in Corollary 1 is what is needed to be able to prove admissibility of the relaxation, but other cleaner notions may be possible. In the full information setting, sequential Rademacher complexities are needed to handle adversarial contexts, but it is unknown how to extend the relaxation approach to adversarial contexts in both bandits or partial monitoring.
+
+Finally, the $j_t = f(x_t)$ case was studied in [4], but only when $f$ is a linear or logistic function; indeed $\sqrt{T}$ is possible without a pairwise observability condition. We will add this comparison.
+
+
+\textbf{Reviewer 4:}
+We will be more clear about the small algorithmic innovations and the intuition behind them. Providing a clear picture of the lower bound shorter than a few pages was difficult and we opted to describe the construction in detail. The high-level intuition is as follows. In the contextual case, pick arbitrary non-neighboring actions $i$ and $j$; there is a policy class where $i$ and $j$ are essentially neighbors in that determining the optimal policy will require resolving between the loss of $i$ and $j$. Hence, if there exists such a pair, then the algorithm will be forced to play other actions to resolve $\ell_i-\ell_j$, and the $T^{2/3}$ lower bound reasoning applies. We'll add this intuition and streamline the rest.
+
+We will also address the rest of your fixes and tone down the optimality claims. Extra thanks for the correct inequality!
+
+\end{document}

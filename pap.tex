@@ -1,0 +1,1771 @@
+\documentclass{article}
+
+% if you need to pass options to natbib, use, e.g.:
+\PassOptionsToPackage{numbers, compress}{natbib}
+% before loading nips_2018
+
+% ready for submission
+\usepackage{nips_2018}
+
+% to compile a preprint version, e.g., for submission to arXiv, add
+% add the [preprint] option:
+% \usepackage[preprint]{nips_2018}
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+% \usepackage[final]{nips_2018}
+
+% to avoid loading the natbib package, add option nonatbib:
+% \usepackage[nonatbib]{nips_2018}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+
+\usepackage{fullpage}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{booktabs} % for professional tables
+\usepackage{bm}
+\usepackage{amsfonts,dsfont}
+\usepackage{comment}
+\usepackage{mathtools,amsthm}
+
+\bibliographystyle{plainnat}
+
+\usepackage{xcolor}
+\usepackage{tikz}
+%\usepackage[colorinlistoftodos, textwidth=26mm, shadow,color=blue!30!white]{todonotes}
+\usepackage[disable]{todonotes}
+
+\usepackage{algorithmic, algorithm}
+\usepackage{hyperref}
+\usepackage{wrapfig}
+
+\newcommand{\KL}{\mathrm{KL}}
+\newcommand{\rank}{\mathrm{rank}}
+\newcommand{\exop}{\mathop{\ex}}
+\newcommand{\proj}{\mathrm{proj}}
+\newcommand{\regret}{\mathcal{R}}
+\newcommand{\spn}{\mathrm{span}}
+\newcommand{\conv}{\mathrm{conv}}
+\newcommand{\rel}{\mathbf{Rel}}
+\newcommand{\hist}{{\mathcal H}}
+\newcommand{\im}{{\mathrm{Im}\;}}
+
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{remark}{Remark}
+\newtheorem{corollary}{Corollary}
+\newtheorem{theorem}{Theorem}
+
+
+\input{def}
+
+
+\title{Minimax Rates in Contextual Partial Monitoring}
+
+% The \author macro works with any number of authors. There are two
+% commands used to separate the names and addresses of multiple
+% authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to
+% break the lines. Using \AND forces a line break at that point. So,
+% if LaTeX puts 3 of 4 authors names on the first line, and the last
+% on the second line, try using \AND instead of \And before the third
+% author name.
+
+\author{
+    Alan Malek
+  \\MIT
+  \texttt{amalek@mit.edu}
+  \and
+  Ali Jadbabaie\\
+  \\MIT
+  \and
+  Alexander Rakhlin
+  MIT
+  %% examples of more authors
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \AND
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+}
+
+\begin{document}
+% \nipsfinalcopy is no longer used
+
+\maketitle
+
+\begin{abstract}
+  We generalize the finite partial monitoring problem to the contextual setting. Partial monitoring allows learning even when the loss of the chosen action is not observed. In the noncontextual problem, the minimax regret is known to be $O(T^{2/3})$ if a global observability condition is satisfied and improves to $O(\sqrt{T})$ under a stronger local observability condition. Perhaps surprisingly, we show that the same characterization does not hold in the contextual case and a stronger notion of \emph{pairwise observability} is necessary for $O(\sqrt{T})$ minimax regret. In particular, we provide a lower bound of $O(T^{2/3})$ for any non-pairwise observable game, including locally observable games, in the contextual setting. We propose two algorithms for adversarial environments. The first requires a finite policy class but allows for arbitrary contexts and can be tuned to obtain the optimal $O(\sqrt{T})$ rate in pairwise observable settings or the optimal $O(T^{2/3})$ rate otherwise. The second allows for arbitrary policy classes with an empirical risk minimization oracle but requires i.i.d. contexts; we also show an $O(T^{2/3})$ upper bound and an efficient implementation using only a constant number of oracle calls per round.
+  % We formulate the contextual finite partial monitoring problem, which allows sequential learning when the loss is not observable, and characterize the possible regret rates. We introduce the pairwise observability condition, which is stronger that the previous locally observability condition, and show that $O(\sqrt{T})$ regret is only possible in this condition by providing an algorithm with this rate as well as a $O(T^{2/3})$ lower bound when the condition does not hold, even if the game is locally observable. This result is in marked contrast to the noncontextual finite partial monitoring, where local observability was necessary and sufficient for $O(\sqrt{T})$ regret. In the non pairwise observable setting, we provide two algorithm, one for finite policy classes and one that only needs an empirical risk minimization oracle, both matching the $O(T^{2/3})$ lower bound. 
+\end{abstract}
+
+\section{Introduction}
+In online learning, we model the world as a sequential game of $T$ rounds between the learner and a possibly adversarial environment. In particular, this paper studies the finite partial monitoring setting proposed in \cite{piccolboni2001discrete}, where, for each round $t$, the learner chooses an action $I_t \in \underbar N := \{1,\ldots,N\}$, the environment chooses a response $j_t \in \underbar M: = \{1,\ldots,M\}$, and the learner incurs loss $L_{I_t,j_t}$, the $I_t,j_t$ entry of a fixed and known loss matrix $L\in[0,1]^{N\times M}$. However, the learner does not observe $j_t$ or $L_{I_t,j_t}$, but rather $H_{I_t,j_t}$, the corresponding entry from the fixed and known feedback matrix $H\in[0,1]^{N\times M}$. Intuitively, one should imagine that each row of $H$ has only a few distinct elements and that observing $H_{I_t,j_t}$ only allows the learner to determine $j_t$ up to some subset of $\underbar M$. In particular, the loss incurred by the algorithm is not observed, making partial monitoring more difficult that bandit feedback.
+
+For example, the partial monitoring game where each row of $H$ has distinct elements (i.e. $1,\ldots,M$) is equivalent to full information, as we can infer $j_t$ and therefore the full loss vector. The \textit{Revealing action} game is more interesting. Define
+  $L = \begin{bmatrix}
+    0 & a\\
+    a & 0\\
+    c & c
+  \end{bmatrix}$
+  and
+  $H = \begin{bmatrix}
+    0 & 0\\
+    0 & 0\\
+    1 & 2
+  \end{bmatrix}$,
+  which encodes the game where the learner tries to match the play of the adversary and incurs loss $a$ if incorrect. However, the learner only obtains useful feedback if she plays $I=3$ at a fixed cost $c$, in which case $j_t$ can be deduced. Partial monitoring allows games where the learner must choose between a low cost but uninformative action and a high cost but informative action.
+
+Partial monitoring is more than a technical challenge and can be used to model practical scenarios. For example, consider dynamic pricing: at each round, the learner sets a price $p_t$ and a buyer with valuation $v_t$ arrives. If $p_t \leq v_t$, the good is purchased and the cost to the learner is $v_t - p_t$, the lost potential revenue from not setting a higher price. However, the learner only observes whether $v_t < p_t$ and not the loss (see \cite{bartok2014partial} for details). More generally, partial monitoring can model scenarios where the learner only sees a quantized version of the true loss, such as:
+(i) surveys where a numerical values are binned, which have a long history as ``partial identification'' in the econometrics literature,
+(ii) recommendation engines, where only coarse feedback from the recommendation (e.g. a like/dislike) is provided, but the learner wishes to find the best recommendations and not just maximize the number of likes, and 
+(iii) robust algorithms, where we only estimate parameters to some confidence region but still want good performance.
+
+Perhaps the biggest obstacle to more widespread adoption of partial monitoring as a modeling tool has been its inability to use context. The learner often has access to a context vector and hopes to choose more informed actions because of it. For example, the noncontextual problem for recommendation engines is tantamount to learning the single best item across all users, but is devoid of personalization.
+
+With this motivation in mind, we propose the contextual partial monitoring problem. In addition to $L$ and $H$, the learner is also provided with a policy class $\Pi$ and, at every round, a context $x_t\in\mathcal X$. A policy $\pi:\mathcal X \rightarrow \underbar N$ maps a context to an action. We only consider deterministic policies, but our results extend to randomized policies in expectation. When it is clear from context, we will also use $\pi(x)$ to represent $e_{\pi(x)}$, the unit vector corresponding to the choice of the policy. The goal of the learner is to minimize the contextual regret,
+the excess cumulative loss when compared to the best policy in $\Pi$:
+\begin{equation}
+  \regret_T := \sum_{t=1}^T L_{I_t,j_t} - \min_{\pi\in\Pi}\sum_{t=1}^T L_{\pi(x_t),j_t}.
+\end{equation}
+
+We will present algorithms for two typical models of the policy class. The first assumes that  $\Pi$ is finite, which allows individual weights on every policy. The second assumes access to an empirical risk minimization (ERM) value oracle, which, given some list of contexts $x_1,\ldots, x_t$ and losses $\ell_1,\ldots, \ell_t$, returns $\min_{\pi\in\Pi}\sum_{s=1}^t \pi(x_s)^\top \ell_s$. Note that only the value of the optimal policy is required. We will present algorithms for both settings.
+
+
+\subsection{Related Work}
+To the best of our knowledge, there are no results on the contextual partial monitoring problem with arbitrary policy classes. The closest work to ours, by \citet{bartok2012partial}, considered actions chosen by $f(x_t)$, where $f$ is some some fixed but unknown function. The algorithms construct explicit confidence regions for $f$ and the play optimistically. 
+
+The noncontextual partial monitoring problem, proposed by \citet{piccolboni2001discrete}, has been well studied. The \emph{global observability} condition was established as a necessary and sufficient for sublinear regret \cite{cesa2006regret} by a $O(T^{2/3})$ upper bound and matching $\Omega(T^{2/3})$ lower bound. A faster rate of $O(\sqrt{T})$ is possible when a stronger \emph{local observability} holds \cite{bartok2011minimax} which matches a $\Omega(T^{2/3})$ lower bound for all games without local observability. These results were later extended to stochastic adversaries \cite{foster2012no} with the same classification, and the effect of degenerate actions was recently resolved \cite{lattimore2018cleaning}. See the work of \citet{bartok2014partial} for more discussion.
+
+Partial monitoring is an extension of a large body of work on games with incomplete information, including bandit feedback \cite{bubeck2012regret}, semi-bandit feedback \cite{audibert2013regret}, graph feedback \cite{alon2015online}, and many others. Finally, we note that the problem of partial monitoring has a very long history in the econometrics literature under the name partial identification; see e.g. \cite{marschak1944random,manski2009identification} and references therein.
+
+Relaxation based algorithms, first proposed by \citet{rakhlinrelax}, have recently been extended to the contextual bandit setting \cite{rakhlin2016bistro,syrgkanis2016improved}. More generally, algorithms for contextual settings that leveraging empirical risk minimization oracles has been applied to other online learning algorithms, such as follow the perturbed leader \cite{dudik2016oracle}.
+
+
+\subsection{Our Contributions}
+We propose the contextual finite partial monitoring problem and characterize the possible minimax rates. In the noncontextual case, the \emph{local observability} condition, which essentially requires that similar losses can be distinguished solely from the feedback from playing those losses, was shown to be necessary and sufficient to obtain $O(\sqrt{T})$ regret. To the contrary, we show that in the contextual case, a much stronger \emph{pairwise observability} condition is needed.
+
+In Section~\ref{sec:ew}, we provide two exponential weights algorithms that dynamically change the point of reference of the loss estimates and are able to capture $O(\sqrt{T})$ regret in the pairwise observability setting and $O(T^{2/3})$ regret in the globally observable setting. These results hold for adversarial contexts and actions but require a finite policy class.
+
+Section~\ref{sec:relaxation} provides the first relaxation based algorithm in the partial monitoring setting and shows a $O(T^{2/3})$ regret in the finite policy class case. This setting requires access to unlabeled samples of the contexts but allows any policy class with an ERM value oracle. We also provide an efficient implementation requiring only $O(N)$  oracle calls per round.
+
+We turn to lower bounds in Section~\ref{sec:lower.bound} and show that, without pairwise observability, no algorithm can achieve better that $\Omega(T^{2/3})$ expected regret. The main implication is that the algorithms from Section~\ref{sec:ew} capture the correct structural dependence on the regret. Additionally, to the best of our knowledge, this is the first time relaxation based algorithms obtain the minimax regret in an adversarial partial information setting, since the $\Omega(T^{2/3})$ lower matches the upper bound of Section~\ref{sec:relaxation}. There are no known tight bounds for the bandit setting.
+
+\paragraph{Notation}
+Collections over time are denoted by $a_{1:t} := a_1,\ldots, a_t $. The $i$th standard basis vector is denoted $e_i$, the all ones vector denoted $\ones$, and the $i$th element of vector $v$ denoted $v(i):= v^\top e_i$. Functions are applied to vectors elementwise; in particular, $\sgn(v)$ is a vector with $i$th element equal to the sign function of $v(i)$. In general, adversary distribution are denoted by $p_t$ and player distributions by $q_t$. Finally,  $\mathds{1}\{\cdot\}$ is the indicator function.
+
+\section{Partial Monitoring with Context}
+Obtaining low regret in a partial monitoring game requires careful study of loss structure, the feedback structure, and how the relate. For clarity, we break up the discussion and the definitions in this manner.
+
+\paragraph{The Loss Structure} Define the loss vector $\ell_i = \e_i^\top L^\top$ to be the transpose of the row corresponding to playing action $i$. The cell corresponding to action $i$ is $C_i:=\{ p \in \triangle_M: \ell_i^\top p \leq \ell_j^\top p\; \forall j\}$, the set of stochastic adversary strategies for which action $i$ is optimal. The cells $C_1,\ldots, C_N$ induce a partition of $\triangle_M$. Action $i$ is degenerate if $C_i \subset C_j$ for some $j$. Two non-degenerate actions $i$ and $j$ are neighbors if $C_i\cap C_j$ is an $M-2$ dimensional polytope (e.g. there is a set of $p\in\triangle_M$ where $i$ and $j$ are both optimal) and denote the neighbor set of $(i,j)$ as $N_{i,j} := \{k\in\underbar N : C_i\cap C_j\subseteq C_k\}$, which includes $i$, $j$, and any action $k$ with $C_k \subseteq C_i\cap C_j$. We may not simply ignore actions like $k$ because action $k$ could provide information that action $i$ or $j$ cannot. Finally, the set of all pairs of neighboring actions is denoted $\mathcal N$.
+
+\paragraph{The Feedback Structure}
+We enumerate the distinct values of the $i$th row of $H$ by $\sigma_1,\ldots,\sigma_{s_i}$; when we play $i$, we observe feedback $\sigma$ and can conclude that $j_t$ must have been such that $H_{I_t,j_t} = \sigma$. Define the signaling matrix $(S_k)_{(i,j)} = \mathds{1}\{H_{(k,j)} = \sigma_i\}$ such that the $j$th row of $S_{k}$ indicated all choices $j_t$ that could have produced $\sigma_i$. Since the exact values of the $\sigma$ do not matter, we may assume that the feedback received is $Y_t = S_{I_t}e_{j_t}$.
+
+\paragraph{Their Interaction}
+Estimating the loss vectors $\ell_i$ is impossible for many easy games; for example, in the revealing action game, it is impossible to learn $A$, but we may still determine which is the optimal action. In fact, estimating the pairwise loss differences is sufficient for low regret. The three following definitions, presented in decreasing generality, encapsulate this notion.
+\begin{definition}
+  A partial monitoring game is \emph{globally observable} if, for all pairs $i,j$, there exists a collection of actions $V_{i,j}\subseteq \underbar N$ and observer vectors
+  $\{ v_{i,j,k}\in\Reals^{s_k} |k\in V_{i,j}\}$, such that 
+  \begin{equation}
+  \ell_i - \ell_j = \sum_{k\in V_{i,j}} S_k^\top v_{i,j,k}.
+\end{equation}
+Throughout, we use $V_\infty = \max_{i,j,k} \Vert v_{i,j,k}\Vert_\infty$. Having $V_{i,j} = \underbar N$ is sufficient for global observability.
+
+If, in addition, we make take $V_{i,j} = N_{i,j}$ for all neighbor pairs $(i,j)\in\mathcal N$, then the game is said to be \emph{locally observable}. Finally, if we may take $V_{i,j} = \{i,j\}$ for all non-degenerate $i$ and $j$, then the game is \emph{pairwise observable}.
+\end{definition}
+
+Intuitively, global observability means that we can construct unbiased estimates of the loss differences from the feedback by exploiting the equality $(\ell_i-\ell_j)^\top e_{j_t} = \sum_{k\in V_{i,j}}  v_{i,j,k}^\top S_k e_{j_t}$; the left hand side is the actual loss difference between action $i$ and $j$ and the right hand side can be estimated from the feedback $Y_t = S_{I_t}e_{j_t}$. Each round, we will choose a base arm $b_t$ and estimate the column vector
+\begin{equation}
+  \Delta_t = (L - \ones \ell_{b_t}^\top) e_{j_t}
+\end{equation}
+so that $ e_{I_t}^\top \Delta_t = L_{I_t,j_t} - L_{b_t,j_t}$. Out general strategy will be to carefully select $b_t$ every round and use an unbiased estimate of $\Delta_t$ as a proxy for the true losses. 
+% \begin{figure}[h]
+% \centering
+% \fbox{\begin{minipage}{.9\columnwidth}
+% Given: $T$,  $L$, $H$, and $\Pi$,\\
+% For $t=1,2, \ldots, T$:
+% \begin{itemize}\setlength{\itemindent}{-.25cm}
+% \item The learner observes a context $x_t\in\mathcal X$
+% \item Using $\Pi$, the learner chooses $p_t$ and samples  $I_t\sim p_t$
+% \item The adversary simultaneously chooses $j_t$
+% \item The learner incurs loss $L_{I_t,j_t}$ and observes $H_{I_t,j_t}$
+% \end{itemize}
+% \end{minipage}}
+% \caption{Protocol}\label{fig:protocol}
+% \end{figure}
+
+
+\section{Exponential Weights Algorithms}
+\label{sec:ew}
+This section extends the exponential weights algorithm to the contextual partial monitoring setting and provides upper bounds in the globally observable and pairwise observable settings.
+The estimator $\hat\Delta_t(i) := \sum_{k\in V_{i,b_t}} \mathds{1}\{k = I_t\}\frac{ v_{i,b_t,k}^\top S_k e_{j_t}}{q_t(k)}$ uses importance sampling and is an unbiased estimator for $\Delta_t(i)$. 
+Written in terms of the feedback $Y_t = S_{I_t}e_{j_t}$,
+\begin{equation}\label{eqn:hat.Delta}
+  \hat\Delta_t = \left(
+    \mathds{1}\{I_t\in V_{1,b_t} \}\frac{ v_{1,b_t,I_t}^\top Y_t}{q_t(I_t)},
+    \ldots,
+    \mathds{1}\{I_t\in V_{N,b_t} \}\frac{ v_{N,b_t,I_t}^\top Y_t}{q_t(I_t)}
+  \right)^\top,
+\end{equation}
+and we can show its unbiasedness by calculating
+\[
+  \hat\Delta_t(i)=
+  \ex\left[   \mathds{1}\{I_t\in V_{i,b_t} \}\frac{ v_{i,b_t,I_t}^\top S_{I_t}e_{j_t}}{q_t(I_t)}\right]
+  =
+  \ex\left [\sum_{k \in V_{i,b_t}} q_t(k) \frac{ v_{i,b_t,k}^\top S_{k}e_{j_t}}{q_t(k)}\right]
+  =(\ell_i - \ell_{b_t})^\top e_{j_t}
+  =
+  \Delta_t(i).
+  \]
+
+  \begin{wrapfigure}[14]{r}{0.5\textwidth}
+    \vspace{-1.7em}
+\begin{minipage}{.5\textwidth}
+\begin{algorithm}[H]
+  \caption{Recentered EXP4.PM}
+  \label{alg:exp4.pm}
+   \begin{algorithmic}
+      \STATE \textbf{Input: } $\eta$, $\gamma$, $T$, $L$,$H$, and $\Pi$
+      \STATE Calculate observer vectors $v_{i,j,k}$
+    \STATE Initialize $w_1 = 1/K$
+      \FORALL{$t=1,\ldots,T$}
+      \STATE Receive context $x_t$
+      \STATE $q_t \leftarrow (1-N \gamma)\sum_{k=1}^K \pi_k(x_t) w_t(k) + \gamma\ones$
+      \STATE Play $I_t\sim q_t$, observe $Y_t = S_{I_t} e_{j_t}$ 
+      \STATE $b_t \leftarrow \argmax_i q_t(i)$
+      \STATE Calculate
+         $\hat\Delta_{t}$ from \eqref{eqn:hat.Delta}
+      \STATE $w_{t+1}(k) \leftarrow w_t(k)e^{-\eta\pi_k(x_t)^\top \hat\Delta_t}$
+      \ENDFOR
+\end{algorithmic}
+\end{algorithm}
+\end{minipage}
+\end{wrapfigure}
+
+Our algorithm, \textsc{EXP4.PM}, is presented in Algorithm~\ref{alg:exp4.pm}. At a high level, it is \textsc{EXP4} using  $\hat\Delta_t$ for loss estimates with $\gamma$ uniform exploration and a recentering step that moves the base action to the arm with the highest weight. A similar idea was concurrently proposed for the noncontextual setting by \citet{lattimore2018cleaning}.
+
+As the following theorem shows, we can always tune $\eta$ and $\gamma$ to guarantee a $O(T^{2/3})$ regret. If pairwise observability holds, we can obtain a faster rate by using $\gamma = 0$ and  by playing the subgame with the degenerate actions removed. This subgame does not have higher regret (there is always a non-degenerate action with loss no higher) and pairwise observability ensures that we construct unbiased estimates of $\Delta_t$ from the plays of non-degenerate actions only.
+\begin{theorem}\label{thm:exp4.pm4.regret}  
+  For any globally observable game, arbitrary sequence of contexts $x_1,\ldots,x_T$ and adversary actions $j_1,\ldots, j_T$, Algorithm~\ref{alg:exp4.pm} with
+$\eta = N^{-\frac13} \left(\frac{\log(K)}{V_\infty T}\right)^{\frac23}$
+and
+$\gamma = \left( \frac{ V_\infty^2 \log(K)}{N^2 T}\right)^{\frac13}$
+yields an expected regret with the bound
+\[
+  \ex[\Regret_T] \leq 3 \left(N V_\infty^2 \log(K)\right)^{\frac13} T^{\frac23}.
+\]
+
+If pairwise observability holds, the same algorithm with degenerate actions removed and parameters $\gamma = 0$ and 
+ $\eta = \sqrt{ \frac{\log(K)}{ T V_\infty^2 (N+3)}}$ observes
+\begin{equation*}
+  \ex[\regret_T] \leq 2 V_\infty \sqrt{ T (N+3) \log(K)}.
+\end{equation*}
+\end{theorem}
+The observability and optimal choice of $\gamma$ and $\eta$ is determined a priori by $L$ and $H$, and one can use the standard doubling trick if $T$ is unknown to obtain the same regret rates with a worse constant.
+
+The proof of Theorem~\ref{thm:exp4.pm4.regret} is mostly identical to the standard \textsc{EXP4} proof. Recall that the \textsc{EXP4} importance weighted estimate, $\hat\ell_t = e_{I_t}\ell_t(I_t)/q_t(I_t)$, only has support on the $I_t$ entry, which allows the variance term in the analysis to be easily bounded by
+$
+\ex\left[\sum_k w_t(x) (\hat\ell_t \pi_k(x_t))^2\right]
+\leq
+\ex\left[V_\infty q_t^\top \hat\ell_t q_t(I_t)^{-2}\right]
+$
+since $q_t^\top \hat\ell_t = \ell_t(I_t)\leq 1$. In contrast, the importance weighted estimates $\hat\Delta_t$ may be non-zero for any entry. Without pairwise observability,  $q_t^\top \hat\Delta_t$ could have magnitude $\max_i 1/q_t(i)$ which we control by setting $\gamma > 0$. With pairwise observability, we may choose $\hat\Delta_t$ to be supported on $e_{I_t}$ and $e_{b_t}$ only, allowing us to control $q_t^\top \hat\Delta_t$ by choosing $b_t$ such that $q_t(b_t)$ is not too small. The full proof is in Appendix~\ref{sec:ew.proof}.
+
+\section{A Relaxation Algorithm}
+\label{sec:relaxation}
+We now turn our focus to policy classes where the only assumption made is access to an ERM value oracle, thereby extending the relaxation framework for contextual bandits \citep{rakhlin2016bistro} to the contextual partial monitoring setting. We first review the necessary details of the relaxation framework before describing an efficient (in terms of the number of oracle calls) algorithm with $O(T^{2/3})$ regret, which will match the lower bound of Section~\ref{sec:lower.bound}.
+
+\subsection{A Sparser Offset Loss Estimate}
+The regret analysis for relaxation algorithms requires careful control of the sparsity of the offset loss estimates. Throughout this section, fix a base arm $b$. Define $V(i) = [v_{1,b,i},\ldots,v_{N,b,i}]$, which implies that $\Delta_t = \sum_k V(k)^\top S_k e_{j_t}$. Instead of constructing an unbiased estimate for $\Delta_t$ from importance weighting, we will instead borrow a trick from \cite{syrgkanis2016improved} and correct for bias by multiplying $V(I_t)^\top Y_t$ by a Bernoulli random variable with expectation $\propto 1/q_t(I_t)$, as described by the following lemma. 
+\begin{lemma}
+  Assume that $q_t(i)\geq \gamma$ for all $i$ and define $\hat Z_t = V_\infty \gamma^{-1} \diag(\hat B_{1,t},\ldots,\hat B_{N,t})$ for
+  $\hat B_{i,t} \sim \mathrm{Bernoulli}\left(\frac{\gamma}{V_\infty} \frac{|e_i^\top V(I_t)^\top Y_t|}{q_t(I_t)}\right)$.
+Then, the following offset loss estimate is unbiased:
+  \begin{equation}
+    \hat\Delta_t := \hat Z_t \sgn( V(I_t)^\top Y_t).
+  \end{equation}
+\end{lemma}
+\begin{proof}
+  First, the probability that $\hat B_{i,t} = 1$ is well defined: $q_t(i)\geq \gamma$ and, since $Y_t = S_k e_{j_t}$ is a unit vector, $|V(i)^\top Y_t|\leq V_\infty$.
+  %Using $\mathcal F_t$ for the filtration generated by $I_t$, $x_t$, $j_t$, and $\hat Z_t$,
+  We can directly verify that
+  \begin{align*}
+    \ex[\hat\Delta_t(i)]
+    &=
+      \ex\left[    
+      \sgn\left(e_i^\top V(I_t)^\top Y_t\right) V_\infty \gamma^{-1} \ex\left[\hat B_{i,t}\middle|I_t\right]\right]\\
+    &=
+      \ex\left[
+      \sgn\left(e_i^\top V(I_t)^\top S_{I_t} e_{j_t}\right)
+      \frac{\left|e_i^\top V(I_t)^\top S_{I_t} e_{j_t}\right|}{q_t(I_t)}\right]
+      = \Delta_t(i).
+  \end{align*}
+\end{proof}
+
+\subsection{Relaxations}
+The relaxation framework allows one to simultaneous derive algorithms and upper bounds on regret for sequential learning problems. We will keep our description short and refer the reader to \cite{rakhlinrelax} and \cite{rakhlin2016bistro} for elaboration on the general sequential prediction and bandit feedback settings, respectively.
+
+During round $t$, the algorithm collects history $(x_t, I_t, q_t, Y_t, \hat Z_t)$. Let $\hist^{t} = \hist^{t-1}\cap (x_t, I_t, q_t, Y_t, \hat Z_t)$ with $\hist^0=\emptyset$.
+\begin{definition}
+  A relaxation $\rel(\cdot)$ is a function from $\hist^{t}$ to $\Reals$ for all $t=1,\ldots, T$. It is admissible if,
+  \begin{enumerate}
+    \item for all $x_{1:T}$, $j_{1:T}$, and $q_{1:T}$,
+  \begin{equation}\label{def:relax.base}
+    \ex_{I_{1:T}\sim q_{1:T},\hat Z_{1:T}}[\rel(\hist^{T})] \geq -\inf_{\pi\in\Pi} \sum_{t=1}^T \pi(x_t)^\top \Delta_t, \text{ and }
+      \end{equation}
+  \item for all $t=1,\ldots,T$ and any history $\hist^{t-1}$,
+  \begin{align}\label{def:relax.induction}
+    &\ex_{x_t}\left[ \inf_{q_t} \sup_{j_t } \ex_{I_t\sim q_t, \hat Z_t}\left[ e_{I_t}^\top \Delta_t + \rel(\hist^{t-1}\cup \hist^t)\right]\right]
+      \leq \rel(\hist^{t-1}).
+  \end{align}
+\end{enumerate}
+  Furthermore, any strategy $q_t$ which satisfies \eqref{def:relax.induction} is called admissible. 
+\end{definition}
+The first condition ensures that $\rel(\hist^T)$ is an upper bound on the offset loss of the comparator, and the second condition ensures that, under the player strategy $q_t$, the relaxation remains an upper bound against all $j_t$. The main utility of $\rel$ is that it produces a bound on the regret, even though it is defined it terms of the offset losses.
+\begin{lemma}\label{lem:relaxation.to.regret}
+  If $\rel(\cdot)$ is an admissible relaxation, then for any $j_{1:T}$, we have
+  \begin{equation*}
+    \ex[\Regret_T] \leq \rel(\emptyset).
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  Applying Lemma~1 from \citet{rakhlin2016bistro} with $c_t = \Delta_t$,
+\  \begin{align*}
+    \rel(\emptyset)&\geq \ex[\sum_{t=1}^T q_t^\top \Delta_t - \inf_{\pi\in\Pi}\sum_{t=1}^T \pi(x_t)^\top\Delta_t]\\
+     &=
+       \ex[\sum_{t=1}^T q_t^\top(L -\ones\ell_b^\top)  e_{j_t}
+       -
+       \inf_{\pi\in\Pi}\sum_{t=1}^T \pi(x_t)^\top(L -\ones\ell_b^\top)  e_{j_t}]= \ex[\regret_T] .
+  \end{align*}
+\end{proof}
+
+\subsection{An Admissible Relaxation}
+The relaxation framework provides at automatic regret bound for any admissible relaxation; the challenge typically is in proving admissibility. The relaxation we use is is modeled on the relaxation for the adversarial contextual bandit settings \cite{rakhlin2016bistro, syrgkanis2016improved} and uses sequential Rademacher averages and a random rollout.
+
+
+\paragraph{Notation} Let $\eepsilon_{t,i}$ denote the matrix with zero elements except for a Rademacher random variable (equal probability $\{1,-1\}$) in the $i,i$ entry, $\eepsilon_t$ denote their collection, and $\Z_t$ denote the random vector with i.i.d. coordinates equal to $V_\infty\gamma^{-1}$ with probability $\gamma$ and equal to $0$ otherwise. We will use $\mathcal D_1 = \{-V_\infty \gamma^{-1},0,V_\infty \gamma^{-1}\}$ and $\mathcal D = \{x\in\Reals^N: x^\top e_i \in \mathcal D_1\forall i\}$. We also define $\triangle_{\mathcal D}'$ to be distributions such that, if $X\sim p\in \triangle_{\mathcal D}'$, then $p(X^\top e_i = V_\infty\gamma^{-1})\leq N\gamma$ and $p(X^\top e_i = -V_\infty\gamma^{-1})\leq N\gamma$ for all $i$. Finally, we write $D_i = \diag(e_i)$ so that $u^\top v = \sum_{i=1}^N u^\top D_i v$.
+
+
+The relaxation at round $t$ is a function of the past data, encapsulated in $\hist^{t-1}$, and some randomly drawn data representing the uncertainty in the future $\rho_t = \bigcup_{s \in t+1:T} \{x_{s},\eepsilon_{s},\Z_{s}\}$, where $x_s$ for $s>t$ are i.i.d. samples from the context distribution. Define
+\begin{align}
+    R_i\left(\hist^{t},\rho_t\right) =
+  \sup_{\pi\in\Pi}
+  -
+  \underbrace{\sum_{s=1}^{t} \pi(x_s)^\top D_i \hat\Delta_s}_
+  {\text{past data}}
+  -
+  \underbrace{\sum_{s=t+1}^{T} 2 \pi(x_s)^\top \eepsilon_{s,i} Z_s}_
+  {\text{future uncertainty}}
+  + (T-t)\gamma,
+\end{align}
+which is best fit of $\Pi$ to the $i$th coordinate of the past and future data.
+\begin{theorem}\label{thm:admissibility}  
+  The relaxation
+  \begin{align}
+    \rel(\hist^{t-1})
+    &= \exop_{
+      \rho_t}
+      \left[
+      \sum_{i=1}^N R_i\left(\hist^{t-1},\rho_t\right)\right]
+ \label{eqn:relaxation.def}
+  \end{align}
+  and the strategy that samples $\rho_t = \bigcup_{s \in t+1:T} \{x_{s},\eepsilon_{s},\Z_{s}\}$ and plays  $q_t= (1-N\gamma)q_t^* + \gamma \ones$ for
+\begin{align}
+  q_t^*
+  &=
+  \argmin_{q \in \triangle_{N}}
+  \sup_{p_t \in \triangle_{\mathcal D}'} 
+    \exop_{\hat\Delta_t \sim p_t}\left[
+    q^\top\hat\Delta_t
+    +   \sum_{i=1}^N  R_i\left(\hist^{t-1},\rho_t\right)\right]
+  \label{eqn:strategy.def}
+\end{align}
+are admissible.
+\end{theorem}
+The optimization objective in \eqref{eqn:strategy.def} has $\hat\Delta_t$ appearing in two places: the $q^\top\hat\Delta_t$ and $\hist^{t}$, and hence the $p_t$ optimization accounts for the worst case adversary action considering the loss introduced at round $t$ as well as the potential future losses (from the $R_i(\hist^t,\rho_t)$ terms). The algorithm picks $q_t$ to mitigate the regret caused by the worst case $p_t$.
+
+% \begin{algorithm}[tb]
+%    \caption{Relaxations for partial monitoring}
+%    \label{alg:bistro.pm}
+%    \begin{algorithmic}
+%       \STATE\textbf{Input: } Game length $T$, $L$,$H$, and $\Pi$
+%       \STATE Calculate observer matrices $V(1),\ldots,V(N)$
+%     \STATE Initialize $p_1 = 1/K$
+%       \FORALL{$t=1,\ldots,T$}
+%       \STATE Receive context $x_t$
+%       \STATE Sample future data $(x,Z,\eepsilon)_{t+1:T}$
+%       \STATE Calculate $q_t^*$ from \eqref{eqn:strategy.def}
+%       \STATE Draw $I_t\sim q_t = (1-N \gamma) q^*_t + \gamma\ones$
+%       \STATE Observe $Y_t$
+% \ENDFOR
+% \end{algorithmic}
+% \end{algorithm}
+
+Since $\rel(\hist^t)$ is admissible, we may apply Lemma~\ref{lem:relaxation.to.regret} to $\rel(\emptyset)$ and obtain a regret bound. The random variable $\Z_t$ has maximum magnitude $\gamma^{-1}$, and hence we can optimize over $\gamma$ to obtain a sub-linear regret, as stated in the following corollary.
+\begin{corollary}\label{cor:oracle.regret.bound}
+  The algorithm that plays the $q_t$ defined in Theorem~\ref{thm:admissibility} has the regret bound
+  \begin{equation*}
+    \ex[\regret_t]
+    \leq
+    \exop_{\Z_{1:T},\eepsilon_{1:T}}\left[\sum_{i=1}^N\sup_{\pi\in\Pi} \sum_{t=1}^T \pi(x_t)^\top\eepsilon_{t,i} \Z_t \right]
+    +
+    T N \gamma.
+  \end{equation*}
+  If the policy class is finite, choosing $\gamma = \left(V_\infty\log(|\Pi|)/(2 TN) \right)^{\frac13}$ produces 
+  \begin{equation}\label{eqn:rel.finite.regret}
+    \ex[\Regret_T] \leq N \left(4 V_\infty \log(|\Pi|)\right)^{\frac13} T^{\frac23}.
+  \end{equation} 
+\end{corollary}
+With details in Appendix~\ref{sec:rel.proofs}, 
+the second claim follows from optimizing $\gamma$ over the bound
+$\exop_{\Z_{1:T},\eepsilon_{1:T}}\left[\sum_{i=1}^N\sup_{\pi\in\Pi} \sum_{t=1}^T \pi(x_t)^\top\eepsilon_{t,i} \Z_t \right] \leq N\sqrt{2T\gamma^{-1}V_\infty \log(|\Pi|)}$.
+
+\subsection{Computation}
+At first glance, the relaxation algorithm, which samples a random rollout $\rho_t$ then computes 
+$
+  \argmin_{q \in \triangle_{N}}
+  \sup_{p_t \in \triangle_{\mathcal D}'} 
+    \exop_{\hat\Delta_t \sim p_t}\left[
+    q^\top\hat\Delta_t
+    +  \sum_{i=1}^N R_i \left(\hist^{t},\rho_t\right)
+    \right]
+    $,
+does not see easy to compute. Fortunately, it is possible to exploit the structure of $\triangle_{\mathcal D}'$ and compute $q_t^*$ using only $3N$ oracle calls per round. We give pseudocode in Algorithm~\ref{alg:qstar} and specify every oracle query. The objective with the $\sup_{p_t}$ resolved is a convex function in $q_t$ which has a local minimum for any $q$ in the rectangle $[a,b]:=[a_1,b_1]\times\ldots\times[a_N,b_N]$ and slope with constant magnitude in all coordinates outside of $[a,b]$. Hence, any $q\in\triangle_N$ with minimum $\Vert\cdot\Vert_1$ distance to $[a,b]$ will be optimal. Consider the case when $\sum_i a_i \leq 1 \leq \sum_i b_i$. With $q_i(x) = a_i\mathds{1}\{x\leq a_i\} + x\mathds{1}\{a_i<x<b_i\} + b_i\mathds{1}\{x\geq b_i\}$, we return an $x$ such that $\sum_i q_i(x) = 1$; this is doable is $O(N)$ time because $q_i(x)$ is a increasing, piecewise linear function where the slope changes every time $x$ passes some $a_i$ or $b_i$; start $x_0 = a$ and increase $x$ until $\sum_i q_i(x)=1$. In the case where $\sum_i b_i \leq 1$, one can perform regular water-filling starting $b$, and if $\sum_i a_i \geq 1$, one can perform water-draining starting from $a$. See Appendix~\ref{sec:computation.appendix} for details and proofs. 
+
+
+\begin{lemma}\label{lem:computation}
+  Algorithm~\ref{alg:qstar} correctly calculates $q_t^*(\rho)$, has complexity $O(N)$, and requires only $3N$ oracle calls.
+\end{lemma}
+
+\begin{algorithm}[tb]
+   \caption{Computing $q_t^*$}
+   \label{alg:qstar}
+   \begin{algorithmic}
+     \STATE\textbf{Input: } History $\hist^{t-1}$, random rollout $\rho_t$
+     \STATE Calculate
+     $ a_i := \frac{\gamma}{V_\infty} \min \left\{ \psi^0 - \psi_i^+, \psi_i^--\psi^0 \right\}$ and $b_i := \frac{\gamma}{V_\infty} \max \left\{ \psi^0 - \psi_i^+, \psi_i^--\psi^0 \right\}$, where     
+     \begin{align*}
+       \psi_i^+= \sup_{\pi\in\Pi}-\pi(x_t)^\top \frac{V_\infty e_i}{\gamma}
+       +A_i(\pi),
+       \psi_i^-= \sup_{\pi\in\Pi}\pi(x_t)^\top \frac{V_\infty e_i}{\gamma}
+       +A_i(\pi), \text{ and }
+       \psi_i^0= \sup_{\pi\in\Pi} A_i(\pi)
+     \end{align*}
+     for $A_i(\pi) = -\sum_{s=1}^{t-1} \pi(x_s)^\top D_i \hat \Delta_s - \sum_{s=t+1}^T 2\pi(x_s)^\top  \eepsilon_{s,i} \Z_{s}$.     
+     \STATE Return the closest $q\in\triangle_N$ to $[a_1,b_1]\times\ldots\times[a_N,b_N]$ in $\Vert\cdot\Vert_1$ norm.
+   \end{algorithmic}
+\end{algorithm}
+
+\section{Lower Bound}
+\label{sec:lower.bound}
+The previous algorithms only delivered fast $O(\sqrt{T})$ rates if pairwise observability holds. This section shows our upper bounds are tight: pairwise observability is necessary for the fast rate.
+\begin{theorem} \label{thm:lower.bound}
+  Consider a contextual partial monitoring game that is not pairwise observable. Then there exists a policy class and stochastic adversary such that any algorithm will incur expected regret w.r.t. the policy class and all fixed actions of at least
+  \[
+    \ex[ \regret_T] \geq C T^{2/3},
+  \]
+  where $C$ is some constant depending on $L$ and $H$ only.  
+\end{theorem}
+Such a lower bound cannot hold for arbitrary policy classes; if this were true, then picking the policy class of constant actions would contradict the lower bound for local observability.
+
+The complete proof is presented in Appendix~\ref{sec:lower.bound.proof}, but the high level ideas are given here. The proof explicitly constructs a hard example. Let $x_t\sim\mathrm{Uniform}([0,1])$ (fortunately, we do not need to turn the distribution of $x_t$). Assume action 1 and 2 are not pairwise observable, and hence $\ell_1 -\ell_2\notin\im(S_1^\top)\oplus\im(S_2^\top)$. This implies that there some $v\in\ker(S_1)\cap\ker(S_2)$ with $(\ell_1-\ell_2)^\top v = 1$ (since we can scale $v$) because the kernel of a matrix $X$ is the orthogonal complement of $\im(X^\top)$. Also, $\ones\in\S_1^\top$, so $v^\top \ones = 0$. 
+
+Fix some $q_1\in C_1$ and $q_2\in\C_2$ and define $P_1(\epsilon) = (q_1 - \epsilon v)\mathds{1}\{x\leq \frac12\} + (q_2 - \epsilon v)\mathds{1}\{x >\frac12\}$ and $P_2(\epsilon)=P_1(-\epsilon)$. Under $P_1$, action 1 incurs slightly less loss and action 2 incurs slightly more. The key is that, for any $i, j\in \{1,2\}$, $S_i (q_j - \epsilon v) = S_i(q_j + \epsilon v)$, so the distribution of feedback symbols observed by the algorithm is exactly the same if actions 1 or 2 is played.
+
+We define $\pi_1(x) = e_1 \mathds{1}\{x\leq \nicefrac12 + \beta_1\} + e_2 \mathds{1}\{x > \nicefrac12 + \beta_1\}$ and
+$\pi_2(x) = e_1 \mathds{1}\{x\leq \nicefrac12 - \beta_2\} - e_2 \mathds{1}\{x > \nicefrac12 - \beta_2\}$. Policy $\pi_i$ has a bias towards action $i$ (playing it $2\beta$ more), and hence $\pi_i$ does better on $P_i$ by $O(\epsilon(\beta+1+\beta_2))$. We show that $\beta_1$ and $\beta_2$ can be tuned to a problem dependent constant such that either policy still outperforms all actions by a constant. The feedback structure ensures that any algorithm receives the same feedback distribution when following $\pi_1$ or $\pi_2$, and hence the algorithm must play other actions to determine which policy is better. By our construction, doing so will add constant regret.
+
+The strategies $P_i$ are $O(\epsilon^2)$ apart in KL-divergence, which allows us to show that the strategies are  hard to separate given the feedback from any action. Hence, the learner must balance playing suboptimal actions with learning which $\pi_i$ is better. Setting $\epsilon=T^{-1/3}$ produces the lower bound.
+
+
+%\section{Collaborative Filtering}
+%\label{sec:CF}
+
+\section{Conclusion}
+This paper characterized the minimax regret for contextual partial monitoring for finite policy classes. We showed that pairwise observability is necessary and sufficient for the fast $O(\sqrt{T})$ rate. This result is surprising, since the noncontextual setting needs the significantly less strong notion of local observability for the $O(\sqrt{T})$ rate. Our lower bound implies that the relaxation algorithm is optimal for the local and global observability settings; this is the first known adversarial partial information setting where a relaxation algorithm obtains the minimax regret.
+
+A few open problems remain. First, how does the complexity of the context affect the rate? Consider a game that is locally but not pairwise observable. If $x_t$ is a constant (or if the policy class ignores it), then the contextual case reduces to the noncontextual case and a fast rate is achievable. However, if $x_t\sim\mathrm{Uniform}([0,1])$, then we showed that the fast rate is impossible. Can one obtain lower and upper bounds in terms of the complexity of the context and interpolate between these two regimes? Second, is it possible to obtain $O(\sqrt{T})$ rates with a relaxation algorithm? The particular form of the optimal $q_t$ in Algorithm~\ref{alg:qstar} suggests a way forward by using properties of $\Pi$ to control $a$ from below and thereby controlling the importance weights without needing uniform exploration.
+
+% \section{Experimental results}
+
+% \begin{itemize}
+% \item 10 items, 80 users. T=300 rounds. Used a scaler for the contexts and thresholded the ratings at 3.0 both to construct L and to provide feedback to the algorithm.
+%   \begin{tabular}{|r|| l | l | l | l |}
+%     Preprocessing proportion& Loss of partial monitoring& loss of uniform& loss of svd& loss of user/user\\
+%     \hline\\
+%     0.05000& PM=0.2334& unif=0.2100& SVD=0.2401& UU=0.2120\\
+%     0.11250& PM=0.2247& unif=0.2515& SVD=0.2368& UU=0.2120\\
+%     0.17500& PM=0.2308& unif=0.2301& SVD=0.1920& UU=0.1946\\
+%     0.23750& PM=0.2401& unif=0.2548& SVD=0.1880& UU=0.2268
+%   \end{tabular}
+% \item 
+% \end{itemize}
+
+\newpage
+\bibliography{../../big_bib}
+
+
+\newpage
+\appendix
+\section{Proof of Theorem~\ref{thm:exp4.pm4.regret}}
+\label{sec:ew.proof}
+For this section, $\mathcal F_t$ denotes the filtration generated by $I_t$ and $x_t$, and $\ex_t[\cdot]:=\ex_{I_t}[\cdot|\mathcal F]$ is the conditional expectation over the player's actions. Our analysis will borrow the following theorem:
+\begin{theorem}[\cite{abernethy2009beating}Theorem 2.1]
+  \label{thm:ew.regret}
+  The exponential weights algorithm using loss $\ell_t$, which plays $q_t(i) \propto \exp(-\eta\sum_{s=1}^{t-1} \ell_t(i))$ has regret
+  \begin{equation}
+\label{eqn:ew.regret}
+  \sum_{t=1}^T (\ell_t)^\top (q_t - u)\leq \eta \sum_{t=1}^T (\Vert \ell_t\Vert_{q_t}^*)^2 + \frac{\log (K)}{\eta},
+\end{equation}
+where $\Vert \ell_t\Vert_{q_t}^*$ is the local norm defined by
+$
+  \Vert \ell_t\Vert_{q_t}^*
+  =
+  \sqrt{(\ell_t)^\top \diag(q_t) \ell_t}$
+  and $u\in\triangle_N$ is any fixed distribution of actions.
+\end{theorem}
+
+\begin{proof}[Proof of Theorem~\ref{thm:exp4.pm4.regret}]
+  For this proof, define $\Pi(x_t)$ to be the matrix with columns $\pi_1(x_t),\ldots, \pi_K(x_t)$, which allows us to write the expected loss from a distribution of policies $w_t \in \triangle_K$ as $\Delta_t^\top \Pi(x_t) w_t$ and the strategy of Algorithm~\ref{alg:exp4.pm} as $q_t = (1-N\gamma) \Pi(x_t) w_t + \gamma\ones$. 
+
+  Consider the exponential weights strategy that plays $w_t\propto \exp(- \eta\sum_{s=1}^{t-1}\Delta_s \Pi(x_s)^\top)$. The expectation of the guarantee from applying Theorem~\ref{thm:ew.regret} with $\ell_t = \Pi(x_t)^\top\hat\Delta_t$ is \begin{align*}
+  \eta \sum_{t=1}^T \ex\left[(\Vert \Pi(x_t)^\top \hat\Delta_t  \Vert_{w_t}^*)^2\right] + \frac{\log (K)}{\eta}
+  &\geq
+  \ex\left[\sum_{t=1}^T(\Pi(x_t)^\top\hat\Delta_t)^\top (w_t - u) \right]\\
+  &=
+    \ex\left[\sum_{t=1}^T\ex_t\left[(\Pi(x_t)^\top\hat\Delta_t)^\top (w_t - u)
+     \right]\right]\\
+  &=
+    \sum_{t=1}^T  \Delta_t^\top \Pi(x_t)w_t
+    -\sum_{t=1}^T \Delta_t^\top \Pi(x_t)u\\
+  &=
+    \sum_{t=1}^T \e_{j_t}^\top (L - \ones\ell_{b_t}^\top)^\top\Pi(x_t) w_t
+    -\sum_{t=1}^T \e_{j_t}^\top(L - \ones\ell_{b_t}^\top)^\top\Pi(x_t) u\\
+  &=
+    \sum_{t=1}^T \e_{j_t}^\top L^\top\Pi(x_t) w_t
+    -\sum_{t=1}^T \e_{j_t}^\top L^\top\Pi(x_t) u.
+\end{align*}
+We can relate the last line to the loss of Algorithm~\ref{alg:exp4.pm} by the simple inequality
+\begin{align*}  
+  \sum_{t=1}^T e_{j_t}^\top L^\top \Pi(x_t)w_t
+  -
+  \sum_{t=1}^T e_{j_t}^\top L^\top  q_t
+  &=
+    \sum_{t=1}^T e_{j_t}^\top L^\top    
+    (  N \gamma \Pi(x_t)^\top w_t - \gamma\ones )
+    \leq
+    \gamma T N.
+\end{align*}
+Combining the two inequalities above, we can show that
+\begin{align}
+  \ex[\Regret_T]
+  &=
+    \sum_{t=1}^T e_{j_t}^\top L^\top  q_t -  \min_u \sum_{t=1}^T \e_{j_t}^\top L^\top\Pi(x_t) u\notag\\
+  &\leq
+    \sum_{t=1}^T e_{j_t}^\top L^\top  \Pi(x_t) w_t
+    - \min_u \sum_{t=1}^T \e_{j_t}^\top L^\top\Pi(x_t) u + \gamma T N\notag\\
+    &\leq
+      \eta \sum_{t=1}^T \ex\left[(\Vert \Pi(x_t)^\top \hat\Delta_t  \Vert_{w_t}^*)^2\right]
+      + \frac{\log (K)}{\eta} + \gamma T N.
+      \label{eqn:general.ew.regret}
+\end{align}
+
+The analysis diverges depending on whether pairwise observability holds. First, assume that it does not hold. To easy notation, define the matrix
+\[
+  V_t(k) := \left( v_{1,b_t,k}, \ldots,v_{N,b_t,k}\right)
+\]
+so that $\Delta_t = \sum_{k=1}^N V_t(k)^\top S_k e_{j_t}$ and $\hat\Delta_t = V_t(I_t)Y_t/q_t(I_t)$. The bound on the observability vectors implies that $V_\infty \geq \max_i\Vert V(i)\Vert_\infty$. We can bound the first term in \eqref{eqn:general.ew.regret} by
+\begin{align*}
+    \ex_t\left[(\Vert \Pi(x_t)^\top\hat\Delta_t\Vert_{w_t}^*)^2\right]
+  &=
+    \ex_t\left[\hat\Delta_t^\top\Pi(x_t) \diag(w_t)\Pi(x_t)^\top \hat\Delta_t \right]\\
+  &=
+    \ex_t\left[\sum_{k=1}^K w_t(k)(\hat\Delta_t^\top\pi_k(x_t))^2 \right]\\
+  &=
+    \ex_t\left[\sum_{k=1}^K w_t(k)\left(\frac{V(I_t)^\top\pi_k(x_t)}{q_t(I_t)}\right)^2\right]\\
+    &\leq
+      \ex_t\left[\frac{V_\infty V(I_t)^\top \Pi(x_t)w_t}{q_t(I_t)^2}\right]\\
+  &\leq
+    V_\infty^2 \gamma^{-1}.
+\end{align*}
+where, in the last inequality, we used $\Pi(x_t)w_t \in \triangle_N$ and $q_t \geq \gamma$. Combining with \eqref{eqn:general.ew.regret}, we have 
+\begin{equation*}
+  \ex[\regret_t] \leq
+  \frac{\eta}{\gamma} T V_\infty^2  + \frac{\log (K)}{\eta} + \gamma T N.
+\end{equation*}
+Optimizing over the parameters and setting
+$\eta = N^{-\frac13} \left(\frac{\log(K)}{V_\infty T}\right)^{\frac23}$ and
+$\gamma = \left( \frac{ V_\infty^2 \log(K)}{N^2 T}\right)^{\frac13}$ yields
+\[
+  \ex[\Regret_T] \leq 3 \left(N V_\infty^2 \log(K)\right)^{\frac13} T^{\frac23}.
+\]
+
+Now, consider the pairwise observability case where $\gamma=0$. We may always choose $V_{i,j} = \{i,j\}$, and so the offset loss estimate will have support on $I_t$ and $b_t$ only. This implies that 
+\[
+  \hat\Delta_t(i) = \mathds{1}\{I_t = i\} \frac{v_{i,b,I_t}^\top Y_t}{q_t(I_t)}
+  +
+  \mathds{1}\{I_t = b_t\} \frac{v_{i,b_t,I_t}^\top Y_t}{q_t(I_t)}.
+\]
+Since $\pi_k(x_t)$ is a unit vector, we have $\mathds{1}\{ \pi_k(x_t) = I_t\} = \pi_k(x_t)^\top e_{I_t}$, so we can write
+\[
+  \pi_k(x_t)^\top \hat\Delta_t
+  =
+  \pi_k(x_t)^\top e_{I_t}
+   \frac{v_{I_t,b_t,I_t}^\top Y_t}{q_t(I_t)}
+  +
+  \mathds{1}\{I_t = b_t\} \frac{v_{b_t,\pi_k(x_t),I_t}^\top Y_t}{q_t(I_t)}.
+\]
+The variance term can therefore be bounded by
+\begin{align*}
+  \ex_t\left[(\Vert \Pi(x_t)^\top\hat\Delta_t\Vert_{w_t}^*)^2\right]
+  &=
+  \ex \left[ \sum_{k=1}^K w_t(k)
+    \left(
+    \pi_k(x_t)^\top e_{I_t} \frac{v_{\pi_k(x_t),b_t,I_t}^\top Y_t}{q_t(I_t)}
+    +
+    \mathds{1}\{I_t = b_t\} \frac{v_{b_t,\pi_k(x_t),I_t}^\top Y_t}{q_t(b_t)}
+    \right)^2\right]\\
+  &\leq
+    V_\infty^2
+    \ex \left[ \sum_{k=1}^K w_t(k)
+    \left(
+    \frac{\pi_k(x_t)^\top e_{I_t} }{q_t(I_t)}
+    +
+    \frac{\mathds{1}\{I_t = b_t\} }{q_t(b_t)}
+    \right)^2\right]\\
+    &=
+    V_\infty^2
+    \ex \left[ \sum_{k=1}^K w_t(k)
+    \left(
+      \frac{\pi_k(x_t)^\top e_{I_t} }{q_t(I_t)^2}
+      + 2
+      \frac{\pi_k(x_t)^\top e_{I_t}\mathds{1}\{I_t = b_t\} }{q_t(I_t)q_t(b_t)}
+    +
+    \frac{\mathds{1}\{I_t = b_t\} }{q_t(b_t)^2}
+      \right)\right]\\
+  &\leq
+    V_\infty^2
+    \ex \left[
+      \frac{q_t^\top e_{I_t} }{q_t(I_t)^2}
+    +
+    2 \frac{q_t^\top e_{I_t}\mathds{1}\{I_t = b_t\} }{q_t(I_t)q_t(b_t)}
+    +  
+    \frac{\mathds{1}\{I_t = b_t\} }{q_t(b_t)^2}
+    \right]\\
+  &\leq
+    V_\infty^2
+    \ex \left[
+    \frac{q_t(I_t) }{q_t(I_t)^2}
+    +
+    2 \frac{q_t(I_t)\mathds{1}\{I_t = b_t\} }{q_t(I_t)q_t(b_t)}
+    +  
+    \frac{\mathds{1}\{I_t = b_t\} }{q_t(b_t)^2}
+    \right]\\
+  &=
+    V_\infty^2\left(    
+    3
+    +  
+    \frac{1 }{q_t(b_t)}
+    \right).
+\end{align*}
+Since we choose $b_t = \argmax_i q_t(i)$, we must have $q_t(b_t)\geq 1/N$ and the previous term is bounded by $V_\infty^2(N+3)$. Combining this inequality with \eqref{eqn:general.ew.regret} and setting $\gamma=0$ produces
+\begin{equation*}
+  \ex[\regret_t] \leq
+  \eta T V_\infty^2(N+3)
+  + \frac{\log (K)}{\eta}.
+\end{equation*}
+The theorem statement follows from setting
+\[
+  \eta = \sqrt{ \frac{\log(K)}{ T V_\infty^2 (N+3)}}.
+\]
+\end{proof}
+
+\section{Proofs for Relaxations}
+\label{sec:rel.proofs}
+
+\begin{lemma}
+  \label{lem:complexity.bound}
+  For any random vector $Z_t$ with $\ex[(Z_t^\top e_i)^2] \leq W$, $\epsilon_{t,i}$ i.i.d.\ Rademacher random variables, and $\eepsilon_t$ denoting the collection across $i$ of $\eepsilon_{t,i}=\diag(e_i \epsilon_{t,i})$,
+  \begin{equation}
+    \exop_{\Z_{1:T},\eepsilon_{1:T}}\left[\sum_{i=1}^N \sup_{\pi\in\Pi} \sum_{t=1}^T \pi(x_t)^\top \eepsilon_{t,i} \Z_t \right] \leq N\sqrt{2 T W \log( \vert \Pi\vert)}.
+  \end{equation}
+\end{lemma}
+\begin{proof}%[Proof of Lemma~\ref{lem:complexity.bound}]
+  This reasoning is a small refinement of the proof of Lemma 2 in \cite{syrgkanis2016improved}. We evaluate
+%   \begin{align*}
+%     \ex_{\Z_{1:T},\eepsilon_{1:T}}\left[ \sum_{i=1}^N\sup_{\pi\in\Pi} \sum_{t=1}^T \pi(x_t)^\top \eepsilon_{t,i} \Z_t \right]
+%     &\leq
+%       \ex_{\Z_{1:T},\eepsilon_{1:T}}\left[ \sup_{\pi\in\Pi} \sup_i\sum_{t=1}^T N\pi(x_t)^\top \eepsilon_{t,i} \Z_t \right]\\
+%     &=
+%       \ex_{\Z_{1:T}}\frac{1}{\lambda}\ex_{\eepsilon_{1:T}}\left[
+%       \log  \left( 
+%       \sup_{\pi\in\Pi}\sup_i
+%       e^{\lambda \sum_{t=1}^T N \pi(x_t)^\top \eepsilon_{t,i} \Z_t} \right)\right]\\
+%     &\leq
+%       \ex_{\Z_{1:T}}\left[\frac{1}{\lambda}
+%       \log\left(
+%       \ex_{\eepsilon_{1:T}}\left[
+%       \sum_{\pi\in\Pi}\sum_{i=1}^N e^{\lambda \sum_{t=1}^T N\pi(x_t)^\top \eepsilon_{t,i} \Z_t}\right]\right)
+%       \right]\\
+%     &\leq
+%       \ex_{\Z_{1:T}}\left[\frac{1}{\lambda}
+%       \log\left(\sum_{i=1}^N \sum_{\pi\in\Pi}\prod_{t=1}^T
+%       \ex_{\eepsilon_{1:T}}\left[
+%       e^{\lambda N \pi(x_t)^\top \eepsilon_{t,i} \Z_t}\right]\right)
+%       \right].
+%   \end{align*}
+%   We have the inequality
+%   \[
+%     \ex_{\eepsilon_{t}}\left[ e^{\lambda N  \pi(x_t)^\top \eepsilon_{t,i} \Z_t}\right]
+%     =
+%     \ex_{\epsilon_t}\left[
+%       e^{\lambda N (\pi(x_t)^\top e_i) \epsilon_t Z_{t,i}}
+%     \right]
+%     =
+%     \frac{
+%       e^{\lambda N (\pi(x_t)^\top e_i)  Z_{t,i}}
+%       +
+%       e^{-\lambda N (\pi(x_t)^\top e_i) Z_{t,i}}
+%     }{2}
+%     \leq
+%     e^{\frac{N^2\lambda^2  Z_{t,i}^2}{2}}.
+%   \]
+% Combining with the above expression produces
+%   \begin{align*}
+%     \sum_{i=1}^N\ex_{\Z_{1:T}}\left[\frac{1}{\lambda}
+%     \log\left( \sum_{i=1}^N \sum_{\pi\in\Pi}\prod_{t=1}^T
+%     \ex_{\eepsilon_{1:T}}\left[
+%     e^{\lambda N\pi(x_t)^\top \eepsilon_{t,i} \Z_t}\right]\right)
+%     \right]
+%     &\leq
+%       \ex_{\Z_{1:T}}\left[\frac{1}{\lambda}
+%       \log\left(\sum_{i=1}^N \sum_{\pi\in\Pi}\prod_{t=1}^T
+%       e^{\frac{\lambda^2 N^2 Z_{t,i}^2 }{2}}
+%       \right)
+%       \right]\\
+%     &\leq
+%       \frac{1}{\lambda}\log( N \vert \Pi\vert )
+%       +       
+%       T\ex_{\Z}\left[
+%       \frac{\lambda N^2 Z_{t_i}^2 }{2}
+%       \right]\\    
+%     &\leq
+%       \frac{1}{\lambda}\log(\vert \Pi\vert)
+%       +
+%       \frac{N^2}{2}W T\lambda 
+%   \end{align*}
+%   Setting $\lambda = \sqrt{2\log(\vert \Pi\vert)/W T N^2}$ finishes the proof.
+
+
+  \begin{align*}
+    \sum_{i=1}^N\ex_{\Z_{1:T},\eepsilon_{1:T}}\left[ \sup_{\pi\in\Pi} \sum_{t=1}^T \pi(x_t)^\top \eepsilon_{t,i} \Z_t \right]
+    &=
+      \sum_{i=1}^N\ex_{\Z_{1:T}}\frac{1}{\lambda}\ex_{\eepsilon_{1:T}}\left[
+      \log \left(
+      \sup_{\pi\in\Pi}
+      e^{\lambda \sum_{t=1}^T \pi(x_t)^\top \eepsilon_{t,i} \Z_t} \right)\right]\\
+    &=
+      \sum_{i=1}^N
+      \ex_{\Z_{1:T}}\left[\frac{1}{\lambda}
+      \ex_{\eepsilon_{1:T}}\left[
+      \log\left(
+      \sup_{\pi\in\Pi}e^{\lambda \sum_{t=1}^T \pi(x_t)^\top \eepsilon_{t,i} \Z_t}\right)\right]
+      \right]\\
+    &\leq
+      \sum_{i=1}^N 
+      \ex_{\Z_{1:T}}\left[\frac{1}{\lambda}
+      \log\left(
+      \ex_{\eepsilon_{1:T}}\left[
+      \sum_{\pi\in\Pi}e^{\lambda \sum_{t=1}^T \pi(x_t)^\top \eepsilon_{t,i} \Z_t}\right]\right)
+      \right]\\
+    &\leq
+       \sum_{i=1}^N 
+      \ex_{\Z_{1:T}}\left[\frac{1}{\lambda}
+      \log\left(\sum_{\pi\in\Pi}\prod_{t=1}^T
+      \ex_{\eepsilon_{1:T}}\left[
+      e^{\lambda \pi(x_t)^\top \eepsilon_{t,i} \Z_t}\right]\right)
+      \right].
+  \end{align*}  
+  We have the inequality
+  \[
+    \ex_{\eepsilon_{t}}\left[ e^{\lambda \pi(x_t)^\top \eepsilon_{t,i} \Z_t}\right]
+    =
+    \ex_{\epsilon_t}\left[
+      e^{\lambda (\pi(x_t)^\top e_i) \epsilon_t Z_{t,i}}
+    \right]
+    =
+    \frac{
+      e^{\lambda (\pi(x_t)^\top e_i)  Z_{t,i}}
+      +
+      e^{-\lambda (\pi(x_t)^\top e_i) Z_{t,i}}
+    }{2}
+    \leq
+    e^{\frac{1}{2}\lambda^2  Z_{t,i}^2}.
+  \]
+Combining with the above expression produces
+  \begin{align*}
+    \sum_{i=1}^N\ex_{\Z_{1:T}}\left[\frac{1}{\lambda}
+    \log\left( \sum_{\pi\in\Pi}\prod_{t=1}^T
+    \ex_{\eepsilon_{1:T}}\left[
+    e^{\lambda \pi(x_t)^\top \eepsilon_{t,i} \Z_t}\right]\right)
+    \right]
+    &\leq
+      \sum_{i=1}^N\ex_{\Z_{1:T}}\left[\frac{1}{\lambda}
+      \log\left(\sum_{\pi\in\Pi}\prod_{t=1}^T
+      e^{\frac{\lambda^2 Z_{t,i}^2 }{2}}
+      \right)
+      \right]\\
+    &\leq
+      N\frac{1}{\lambda}\log( \vert \Pi\vert )
+      +       
+      N T\lambda \ex_{\Z}\left[
+      \frac{\lambda Z_{t_i}^2 }{2}
+      \right]\\    
+    &\leq
+      \frac{N}{\lambda}\log(\vert \Pi\vert)
+      +
+      \frac{N}{2}W T\lambda 
+  \end{align*}
+  Setting $\lambda = \sqrt{2\log(\vert \Pi\vert)/W T}$ finishes the proof.
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\ref{cor:oracle.regret.bound}]
+  Lemma~\ref{lem:complexity.bound} with $W = V_\infty \gamma^{-1}$ yields a bound of
+  \[
+    \exop_{\Z_{1:T},\eepsilon_{1:T}}\left[\sum_{i=1}^N\sup_{\pi\in\Pi} \sum_{t=1}^T \pi(x_t)^\top \eepsilon_{t,i} \Z_t \right] \leq N \sqrt{2 T V_\infty \gamma^{-1} \log(\vert \Pi\vert)},
+  \]
+  which produces the theorem with the given value of $\gamma$.
+\end{proof}
+
+
+\begin{proof}[Proof of Theorem~\ref{thm:admissibility}]
+  The base case is easy. Using the convexity of supremum and the unbiasedness of $\hat\Delta_t$,
+  \begin{align*}
+  \ex_{I_{1:T},\hat Z_{1:T}}\left[
+  \rel(\hist^T)
+  \right]
+  &=
+    \ex_{I_{1:T},\hat Z_{1:T}}\left[
+    \sum_{i=1}^N\sup_{\pi\in\Pi}
+    -\sum_{s=1}^T \pi(x_t)^\top D_i \hat \Delta_t
+    \right]\\
+  &\geq
+    \ex_{I_{1:T},\hat Z_{1:T}}\left[
+    \sup_{\pi\in\Pi}
+    -\sum_{i=1}^N \sum_{s=1}^T \pi(x_t)^\top D_i \hat \Delta_t
+    \right]\\
+  &=
+    \ex_{I_{1:T},\hat Z_{1:T}}\left[    
+    \sup_{\pi\in\Pi}
+    -\sum_{s=1}^T \pi(x_t)^\top \hat \Delta_t
+    \right]\\
+  &\geq
+    \sup_{\pi\in\Pi}
+    \sum_{s=1}^T
+    \ex_{I_{1:T},\hat Z_{1:T}}\left[
+    - \pi(x_t)^\top \hat \Delta_t
+    \right]\\
+  &=
+    \sup_{\pi\in\Pi}
+    -\sum_{s=1}^T \pi(x_t)^\top \Delta_t.
+  \end{align*}
+
+  We now check the inductive step. We define $\rho = (x_t,\eepsilon_t,\Z_t)_{t+1:T}$ to the collection of random variables in the relaxation. Recall that our aim is to prove admissibility of the strategy $q_t(\rho) = (1-N\gamma)q_t^*(\rho)+ \gamma \ones$ where $q_t^*(\rho)$ was defined by
+  \begin{align*}
+  q_t^*(\rho)
+  &=
+  \argmin_{q \in \triangle_{N}}
+  \sup_{p_t \in \triangle_{\mathcal D}'} 
+    \exop_{\hat\Delta_t \sim p_t}\left[
+    q^\top\hat\Delta_t
+    +  \sum_{i=1}^N R_i\left(\hist^{t},\rho\right)
+    \right].
+\end{align*}
+By construction, no entry of $q_t(\rho)$ is below $\gamma$. It is then easy to check that, for $q_t^* = \ex_{\rho}[q_t^*(\rho)]$ and $q_t = \ex_{\rho}[q_t(\rho)]$,
+\[
+  \ex_{I_t \sim q_t}\left[ \Delta_t ^\top e_{I_t} \right] = \Delta_t^\top q_t  
+  \leq \Delta_t^\top q_t^* + N\gamma
+  =
+  \ex_{I_t\sim q_t} \left[ \hat\Delta_t(I_t,j_t,q_t)^\top q_t^* \right] + N\gamma,
+\]
+where we have been explicit that $\hat\Delta_t(I_t,j_t,q_t)$ is a random variable that depends on the player actions and the $q_t$ (since $\Z_t$'s distribution is a function of $q_t$). 
+
+For every fixed $x_t$, we can apply the above inequality and unpack the definition of the relaxation to find
+\begin{align*}
+  \sup_{j_t} \mathop{\ex}_{I_t\sim q_t}\left[e_{I_t}^\top\hat\Delta_t(I_t,j_t,q_t)
+  +  \rel(\hist^t) \right]
+  &=
+    \sup_{j_t } \mathop{\ex}_{I_t\sim q_t}\left[e_{I_t}^\top\hat\Delta_t(I_t,j_t,q_t)
+    +  \sum_{i=1}^N \exop_\rho\left[R_i\left(\hist^{t},\rho\right)\right]\right]\\
+  &\quad + (T-t)N\gamma\\
+  &\leq
+    \sup_{j_t} \mathop{\ex}_{I_t\sim q_t}\left[(q_t^*)^\top\hat\Delta_t(I_t,j_t,q_t)
+    +
+  \sum_{i=1}^N\exop_\rho\left[R_i\left(\hist^{t},\rho\right)\right]\right]\\
+  &\quad+(T-t+1)N\gamma.
+\end{align*}
+Defining $A_i(\pi) = -\sum_{s=1}^{t-1} \pi(x_s)^\top D_i \hat \Delta_s - \sum_{s=t+1}^T 2\pi(x_s) \eepsilon_{s,i} \Z_{s}$, the previous line is equal to
+\begin{align*}
+\lefteqn{\sup_{j_t} \mathop{\ex}_{I_t\sim q_t}\left[(q_t^*)^\top\hat\Delta_t(I_t,j_t,q_t)
+    +
+  \mathop{\ex}_{\rho}\left[\sum_{i=1}^N \sup_{\pi} - \pi(x_t)^\top \hat\Delta_t(I_t,j_t,q_t) + A_i(\pi)
+  \right]\right] + (T-t+1)N\gamma}\\
+  &\quad =
+    \sup_{j_t} \sum_{i=1}^N\mathop{\ex}_{I_t\sim q_t}\left[\mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top \hat \Delta_t (I_t,j_t,q_t)
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t(I_t,j_t,q_t) + A_i(\pi)\right]\right]\\
+  &\quad+ (T-t+1)N\gamma.
+\end{align*}
+
+This optimization is intractable without strong assumptions on $\Pi$; the $j_t$ optimization needs to account for how the supremum over the policy class will be affected. Therefore, we reduce the constraints on the adversary to relax the problem by allowing play of distributions over $\hat\Delta_t$ instead of constraining the $\hat\Delta_t$ to correspond to 
+a specific choice of $I_t,j_t$, and $q_t$. However, we carefully defined $\hat\Delta_t(I_t,j_t,q_t)$ so that it would have coordinate-wise sparseness and only expand the plays of the adversary to distributions with the same sparseness.
+
+Specifically, every coordinate of $\hat\Delta_t(I_t,j_t,q_t)$  has large probability of being zero: if we fix $q_t$ by conditioning on $\rho$, then
+\begin{align*}
+  P\left(\hat\Delta_t(I_t,j_t,q_t)^\top e_i = 0 \right)
+  &=
+    \ex_{\rho}\left[ \ex_{I_t \sim q_t(\rho)}\left[ P\left(\hat\Delta_t(I_t,j_t,q_t)^\top e_i = 0 \middle |\rho, I_t\right)\right]\right]\\
+    &=
+    \ex_{\rho}\left[ \ex_{I_t \sim q_t(\rho)}\left[
+    1-\frac{\gamma \vert e_i^\top V(I_t)^\top Y_t\vert }{V_\infty q_t(\rho)(I_t)}
+    \right]\right]\\
+  &\geq
+    \ex_{\rho}\left[ \ex_{I_t \sim q_t(\rho)}\left[
+    1-\frac{\gamma}{q_t(\rho)(I_t)}
+    \right]\right]\\
+  &= \ex_{\rho}\left[
+    \sum_{i=1}^N q_t(\rho)(i) \left(1- \frac{\gamma}{q_t(\rho)(i)}\right)\right]\\
+  &= 1 - N \gamma.
+\end{align*}
+Therefore, the distribution of $\hat\Delta_t(I_t,j_t,q_t)$ is always in $\triangle_{\mathcal D}'$, and we obtain an upper bound by allowing the adversary to play distributions over a random variable named $\hat\Delta_t$ with distribution in $\triangle_{\mathcal D}'$. With this substitution, $I_t$ and $j_t$ no longer appear in the expression. Suppressing the $(T-t+1)N\gamma$ term, we have
+\begin{align*}
+  &\lefteqn{
+        \sup_{j_t } \sum_{i=1}^N\mathop{\ex}_{I_t\sim q_t}\left[\mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top \hat \Delta_t(I_t,j_t,q_t)
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t(I_t,j_t,q_t) + A_i(\pi)\right]\right]
+    }\\
+  &\leq
+    \sup_{p_t\in\triangle_{\mathcal D}'} \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[
+    \sum_{i=1}^N\mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top \hat \Delta_t
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]\right]\\
+    &\leq
+\mathop{\ex}_{\rho}\left[ \sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^*(\rho)^\top \hat \Delta_t
+    +
+  \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]\right].
+\end{align*}
+
+Our ability to move the expectation over $\rho$ to the outside allows us to obtain the same bound in expectation by sampling a single $\rho$ and playing $q_t(\rho)$ instead of calculating the infimum over $q$. 
+
+For the remainder, fix some $\rho$. We defined
+\[
+  q_t^*(\rho)
+  =
+  \argmin_{q \in \triangle_{N}}
+  \sup_{p_t \in \triangle_{\mathcal D}'}
+  \ex_{\hat\Delta_t\sim p_t}\left[
+  q^\top \hat \Delta_t
+    +
+    \sum_{i=1}^N \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right],
+  \]
+  and so
+  \begin{align*}
+    &\lefteqn{\sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^*(\rho)^\top \hat \Delta_t
+    +
+  \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]}\\
+    &=
+      \inf_{q_t}
+      \sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^\top \hat \Delta_t
+    +
+  \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right].
+\end{align*}
+% Recall that this expression is an upper bound on 
+% $  \sup_{j_t} \mathop{\ex}_{I_t\sim q_t}\left[ e_{I_t}^\top \hat \Delta_t(I_t,j_t,q_t)
+%    + \rel(\hist^t)\right] -(t+1)N\gamma$.
+
+We continue bounding this saddle point problem from above. Noting that the objective is linear in both $q_t$ and $p_t$, we may perform a min-max swap:
+\begin{align*}
+  &\lefteqn{
+          \inf_{q_t}
+      \sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^\top \hat \Delta_t
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]
+    }\\
+  &=
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \inf_{q_t}    
+    \sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^\top \hat \Delta_t
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]\\
+  &\leq
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \inf_{j}  
+    \sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top \hat \Delta_t
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]\\
+  &=
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \sum_{i=1}^N
+    \inf_{j}  \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top \hat \Delta_t\right]
+    +
+\mathop{\ex}_{\hat\Delta_t\sim p_t}\left[  \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]. 
+\end{align*}
+Because $\pi$ is deterministic, we must have
+\[
+  \min_i \ex_{\hat\Delta_t \sim p_t}
+  [e_i^\top\hat\Delta_t]
+  \leq
+  \ex_{\hat\Delta_t \sim p_t }[\pi(x_t)^\top\hat\Delta_t]
+  \leq
+  \ex_{\hat\Delta_t \sim p_t }[\pi(x_t)^\top D_i\hat\Delta_t],
+\]
+ which allows us to upper bound the previous expression. Performing the usual symmeterization (using $\epsilon$ as a single Rademacher random variable) yields
+\begin{align*}
+  &\lefteqn{
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \sum_{i=1}^N \ex_{\hat\Delta_t\sim p_t}\left[
+     \sup_{\pi\in\Pi} A_i(\pi)
+    +\min_j \ex_{\hat\Delta_t'\sim p_t}\left[e_j^\top \hat\Delta_t'\right]
+    -\pi(x_t)^\top D_i \hat\Delta_t
+  \right]
+  }\\
+  &\leq
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \sum_{i=1}^N \ex_{\hat\Delta_t\sim p_t}\left[
+     \sup_{\pi\in\Pi} A_i(\pi)
+    +\ex_{\hat\Delta_t'\sim p_t}\left[\pi(x_t)^\top D_i \hat\Delta_t'\right]
+    -\pi(x_t)^\top D_i \hat\Delta_t
+  \right]\\
+  &\leq
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \sum_{i=1}^N \ex_{\hat\Delta_t\sim p_t, \hat\Delta_t'\sim p_t}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        \pi(x_t)^\top D_i\left(\hat\Delta_t'-\hat\Delta_t\right)
+    \right]\\
+  &=
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \sum_{i=1}^N \ex_{\hat\Delta_t\sim p_t, \hat\Delta_t'\sim p_t,\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        \epsilon_i\pi(x_t)^\top D_i\left(\hat\Delta_t'-\hat\Delta_t\right)
+    \right]\\
+    &\leq
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \sum_{i=1}^N \ex_{\hat\Delta_t\sim p_t,\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\epsilon_i\pi(x_t)^\top D_i\hat\Delta_t
+        \right].
+\end{align*}
+Since $D_i\hat\Delta_t = e_i \hat\Delta_t(i)$, each term in the sum only involves one coordinate if $\hat\Delta_t$. Therefore, it is without loss of generality to assume that $p_t$ is a product distribution. Using $\triangle_{\{0,V_\infty \gamma^{-1}\}}$ to denote distributions over the singletons $0$ and $V_\infty\gamma^{-1}$, define 
+\[
+  \triangle_1' := \left\{ p \in \triangle_{\{0,V_\infty \gamma^{-1}\}}: p(0)\geq 1-N\gamma\right\}
+\]
+and observe that if $\hat\Delta_t\sim p_t\in\triangle_{\mathcal D'}$, then $\epsilon_i X_i e_t \stackrel{\mathcal L}{=} \hat\Delta_t(i)$ for some $X_i\sim p_i\in\triangle_1'$. We then have 
+\begin{align*}
+  \sup_{p_t\in\triangle_{\mathcal D}'}
+    \sum_{i=1}^N \ex_{\hat\Delta_t\sim p_t,\epsilon}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\epsilon\pi(x_t)^\top D_i \hat\Delta_t
+  \right]
+  &=
+      \sup_{p_1,\ldots,p_N \in\triangle_1'}
+    \sum_{i=1}^N \ex_{X_i\sim p_i,\epsilon_{1:N}}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\pi(x_t)^\top e_i \epsilon_i X_i
+    \right]\\
+      &=
+        \sum_{i=1}^N
+        \sup_{p_i \in\triangle_1'}
+        \ex_{X_i\sim p_i,\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\pi(x_t)^\top e_i \epsilon_i X_i
+    \right].
+\end{align*}
+
+We will now argue that a witness to the supremum of 
+\begin{align*}
+    \sup_{p_i\in\triangle_1'}
+  \ex_{X_i\sim p_i,\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\pi(x_t)^\top e_i \epsilon_i X_i
+        \right]
+\end{align*}
+is the distribution that puts mass $N\gamma$ on $V_\infty\gamma^{-1}$ and the rest on $0$. Define the convex function 
+$g(x) :=  \sup_{\pi\in\Pi} A_i(\pi)+ 2\pi(x_t)^\top e_i x$. The expectation $\ex_{\epsilon}\left[ g(\epsilon x)\right]$ is increasing on $x\geq 0$. To see this, consider some $0\leq a<b$. We can write $a = \theta b + (1-\theta)(-b)$ for some $\theta$ and use the definition of convexity to conclude 
+ \begin{align*}
+   \ex_{\epsilon}\left[ g(\epsilon a) \right]
+   = 
+   \frac{g(a)+g(-a)}{2}
+   \leq
+   \frac{\theta g(b)+(1-\theta)g(-b)
+   +(1-\theta) g(b)+\theta g(-b)
+   }{2}
+   =
+   \ex_{\epsilon}\left[ g(\epsilon b) \right].
+ \end{align*}
+ Since $\ex_{\epsilon}\left[ g(\epsilon x)\right]$ is increasing, the supremum of $p_i$ puts maximum mass on $V_\infty\gamma^{-1}$. Hence, defining the random vector $Z_{t}$ with elements $P(Z_{t,i} = 0) = 1-N\gamma$ and $P( Z_{t,i} = V_\infty\gamma^{-1}) = N\gamma$, we have
+ \begin{align*}
+    \sup_{p\in\triangle_1'}
+  \ex_{X_i\sim p,\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\pi(x_t)^\top e_i \epsilon_i X_i
+        \right]
+   &=
+  \ex_{\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\epsilon_i\pi(x_t)^\top D_i \Z_t
+   \right]\\
+      &=
+  \ex_{\eepsilon_t}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\pi(x_t)^\top \eepsilon_{t,i} \Z_t
+        \right].
+\end{align*}
+
+In total, we have shown that, for every fixed $x_t$ and $\rho$, playing $q_t(\rho)$ allows the bound
+\begin{align*}
+    \sup_{j_t} \mathop{\ex}_{I_t\sim q_t}\left[ e_{I_t}^\top \Delta_t
+  + \rel(\hist^t)\right]
+  &\leq
+    \ex_\rho \left[
+  \ex_{\epsilon_t, \Z_t}\left[
+  \sum_{i=1}^N
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\pi(x_t)^\top \eepsilon_{t,i} \Z_t
+  \right]
+  \right]
+  + (T-t+1)N\gamma\\
+  &=
+  \rel(\hist^{t-1}),
+\end{align*}
+as required.
+\end{proof}
+
+\section{Proof of Lemma~\ref{lem:computation}}
+\label{sec:computation.appendix}
+\begin{proof}
+  Recall that the relaxation algorithm sampled $\rho_t$ then calculated the $q_t(\rho)$ that minimized
+ \begin{align*}
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \sum_{i=1}^N
+    \exop_{\hat\Delta_t(i) \sim p_i}\left[
+    q^\top D_i \hat\Delta_t
+    +
+    \sup_{\pi\in\Pi}-\pi(x_t)^\top D_i \hat\Delta_t
+    +A_i(\pi)\right],
+ \end{align*}
+where $A_i(\pi) = -\sum_{s=1}^{t-1} \pi(x_s)^\top D_i \hat \Delta_s - \sum_{s=t+1}^T 2\pi(x_s) \eepsilon_{s,i} \Z_{s}$ and the $(T-t)N\gamma$ term is suppressed. This optimization decomposes over coordinates of $\hat\Delta_t$ and therefore over marginals of $p_t$. Since $\triangle_{\mathcal D}'$ only puts support on vectors with coordinates in $\{-V_\infty \gamma^{-1},0,V_\infty \gamma^{-1}\}$,  we can fully parameterize the problem with  $p_i^+ := p_i(\cdot = V_\infty \gamma^{-1})$ and $p_i^- = p_i(\cdot =- V_\infty \gamma^{-1})$ for $i=1,\ldots,N$. The definition of $\triangle_{\mathcal D}'$ implies that $p_i^+\leq\gamma$ and $\pi_i^-\leq\gamma$. The objective becomes
+ \begin{align*}
+\lefteqn{    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \sum_{i=1}^N
+    \exop_{\hat\Delta_t(i) \sim p_i}\left[
+    q^\top D_i \hat\Delta_t
+    +
+    \sup_{\pi\in\Pi}-\pi(x_t)^\top D_i \hat\Delta_t
+    +A_i(\pi)\right]
+}\\
+&=
+  \sum_{i=1}^N
+    \sup_{p_i^+\leq\gamma, p_i^- \leq\gamma}
+    \frac{V_\infty q_i}{\gamma} (p_i^+-p_i^-)
+    +
+    \exop_{\hat\Delta_t(i) \sim p_i}\left[
+    \sup_{\pi\in\Pi}-\pi(x_t)^\top e_i\hat\Delta_t(i)
+    +A_i(\pi_i)
+  \right]\\
+&=
+  \sum_{i=1}^N
+    \sup_{p_i^+\leq\gamma, p_i^- \leq\gamma}
+    \frac{V_\infty q_i}{\gamma} (p_i^+-p_i^-)
+  +
+  p_i^+ \left( \sup_{\pi\in\Pi} -\pi(x_t)^\top e_i\frac{V_\infty}{\gamma}
+  +A_i(\pi_i)\right)\\
+&\quad +
+  p_i^- \left( \sup_{\pi\in\Pi}  \pi(x_t)^\top e_i\frac{V_\infty}{\gamma}
+  +A_i(\pi_i)\right)
+  +
+  (1-p_i^+-p_i^-) \left( \sup_{\pi\in\Pi} A_i(\pi_i)\right),
+ \end{align*}
+and we can immediately see that we only require invoking the oracle $3N$ times to evaluate
+\begin{align*}
+  \psi_i^+:= \sup_{\pi\in\Pi}-\pi(x_t)^\top \frac{V_\infty e_i}{\gamma}
+  +A_i(\pi),
+  \psi_i^-:= \sup_{\pi\in\Pi}\pi(x_t)^\top \frac{V_\infty e_i}{\gamma}
+  +A_i(\pi), \text{ and }
+  \psi_i^0:= \sup_{\pi\in\Pi} A_i(\pi)
+\end{align*}
+for $i=1,\ldots, N$. In terms of these quantities, the objective becomes
+\begin{align}
+  \sum_{i=1}^N
+      \sup_{p_i^+\leq\gamma, p_i^- \leq\gamma}
+  \left(
+  p_i^+\left(\psi_i^+ + \frac{V_\infty q_i}{\gamma} - \psi_i^0\right)
+  +
+    p_i^-\left(\psi_i^- - \frac{V_\infty q_i}{\gamma} - \psi_i^0\right)
+  + \psi_i^0
+     \right).
+       \label{eqn:sup.with.p}
+\end{align}
+
+Since $p_i^+$ and $p_i^-$ are bounded by $\gamma$, the supremum will be at 
+$
+  p_i^+
+  =
+  \gamma \mathds{1}\left\{\left(\psi_i^+ + \frac{V_\infty q_i}{\gamma}\right) > \psi_i^0\right\}
+  $
+  and
+  $
+  p_i^-
+  =
+  \gamma \mathds{1}\left\{\left(\psi_i^- - \frac{V_\infty q_i}{\gamma}\right) > \psi_i^0\right\}
+$.
+Hence, \eqref{eqn:sup.with.p} evaluates to 
+\begin{align*}  
+  N\psi_0
+  + \sum_{i=1}^N
+  \max \left\{-\gamma(\psi_i^0-\psi_i^+) + V_\infty q_i, 0\right\}
+  +
+  \max \left\{\gamma(\psi_i^--\psi_i^0) - V_\infty q_i, 0\right\}.
+\end{align*}
+
+The positivist of $\pi(x_t)$ ensures that $\psi_i^+ \leq \psi_i^0 \leq \psi_i^-$ which implies that $(\psi^0-\psi_i^+)\geq 0$ and $(\psi_i^--\psi^0)\geq 0$. Since the $\max$ switches at $\frac{\gamma}{V_\infty}(\psi^0 - \psi_i^+)$ and the second at $\frac{\gamma}{V_\infty}(\psi_i^--\psi^0)$, the minimizer of $q_i$ is between these two values where the slope vanishes. If
+$\psi_i^--\psi^0 \leq \psi^0 - \psi_i^+$,
+then the minimum is $0$; otherwise, it is $\gamma (\psi_i^++\psi_i^- -2\psi_0)$. 
+
+By defining $a_i := \frac{\gamma}{V_\infty} \min \left\{ \psi^0 - \psi_i^+, \psi_i^--\psi^0 \right\}$ and $ b_i := \frac{\gamma}{V_\infty} \max \left\{ \psi^0 - \psi_i^+, \psi_i^--\psi^0 \right\}$, we can compactly write the objective as 
+\[
+  \sum_{i=1}^N
+  V_\infty\max\{q_i-a_i,0\}
+  +
+  V_\infty\max\{b_i-q_i,0\}
+  +
+  \max\{ \gamma (\psi_i^++\psi_i^- -2\psi_0), 0\}.
+\]
+Let $A_t$ be the rectangle of $\Reals^N$ with $i$th coordinate in $[a_i, b_i]$. If $A_t$ has  has nonempty intersection with $\triangle_N$, then any point in the intersection is optimal. Otherwise, we can exploit the fact that the objective value at $a_i - \epsilon$ is exactly the same as the objective value at $b_i + \epsilon$. Hence, the value of any point $x$ is the $L_1$ distance to $A_t$.
+
+  There are three cases to consider. First, if $\sum_i a_i \leq 1 \leq \sum_i b_i$, then any $q$ with $\sum_i q_i = 1$ and $q_i \in [a_i,b_i]$ is optimal. In particular, we can select the $q$ with by a constrained water-filling algorithm as follows. Define $q(x)$ to have coordinates
+\[
+    q_i(x) =
+    \begin{cases}
+      a_i & \text{ if } x \leq a_i, \\
+      x & \text{ if } a_i \leq x \leq b_i, \text{ and }\\
+      b_i & \text{ if } x \leq b_i.
+    \end{cases}
+\]
+Select $q^* = q(x_{fill})$ where $x_{fill} := \max\{x : \sum_i q_i(x) \leq 1\}$. Because $\sum_i a_i \leq 1 \leq \sum_i b_i$, such an $x_{fill}$ must exist. We can find $x_{fill}$ easily since $\sum_i q_i(x)$ is a piecewise linear increasing function in $x$ with at most $2N$ points where the slope changes.
+
+
+The second case is $\sum_i b_i < 1$, which implies that $A_t$ does not intersect $\triangle_N$. In this case, the suboptimality is exactly $V_\infty \Vert q - b\Vert_1$, which can be minimized a water-filling algorithm as described above with no upper limit to the coordinates of $q_i$. The final case is $\sum_i a_i > 1$, which results in an inverse water-filling algorithm.
+
+
+
+% Finally, in the case when $\sum_i a_i > 1$, we need to preform a reverse water-filling. Analogously define $g_v(y) = \sum_i \min\{ \max_j v_j - y, v_i\}$. We can write this as
+% \begin{align*}
+%   g_v(y)
+%   &=
+%     \sum_i \min\{ \max_j v_j - y, v_i\}\\
+%   &=
+%     -\sum_i \max \{ y- \max_j v_j , - v_i\}\\
+%   &=
+%     N(\max_j v_j)-\sum_i \max \{ y, \max_j v_j  -v_i\}\\
+%   &=
+%     N(\max_j v_j) - f_{(\max_j v_j  -v)}( y - \min_j v_j).
+% \end{align*}
+% We wish to solve for the $y$ such that $g_a(y) = 1$, which implies that $y^* = f_{(\max_j a_j  -a)}^{-1}( N \max_j a_j-1) + \min_j a_j$, so
+% $q_i^* = \min\{ \max_j a_j - y^*, a_i\}$. 
+\end{proof}
+
+\section{Proof of Lower Bound}
+\label{sec:lower.bound.proof}
+For readability, we break up the proof into four sections. 
+
+\subsection{Defining the alternatives}  
+By assumption, there exist two non-degenerate actions that are not pairwise observable. Without loss of generality, assume that these are actions 1 and 2. Define $S_{1,2} = \begin{bmatrix} S_1 \\ S_2
+\end{bmatrix}$. Since actions 1 and 2 are not pairwise observable, we must have $\ell_1 - \ell_2 \notin \im( S_{1,2}^\top)$. Let $w$ be the orthogonal projection of $\ell_1 - \ell_2$ onto $\im( S_{1,2}^\top)$. Since $\Reals^M = \im(S_{1,2}^\top) \oplus \ker (S_{1,2})$, we must have $w\in\ker (S_{1,2})$. Let $v$ be a scaling of $w$ such that $(\ell_2 - \ell_1)^\top v = 1$, and note that  $\ones\in\im(S_{1,2})$ implies that $v^\top \ones = 0$ (where $\ones$ is the all ones vector). To summarize, there exists a vector $v$ with:
+\begin{enumerate}
+\item $v^\top \ones = 0$,
+\item $(\ell_1 - \ell_2)^\top v = 1$, and
+\item $S_1v = S_2 v = 0$.
+\end{enumerate}
+
+We now exploit the existence of such a $v$ to design two adversary strategies, $P_1$ and $P_2$, and a policy class $\Pi$, such that $P_1$ and $P_2$ are difficult to distinguish when playing in $\Pi$ but the excess loss of playing outside of $\Pi$ is large.
+
+Recalling that $x_t\sim\mathrm{Uniform}([0,1])$, we will choose an adversary strategy $P_1$ that plays $q_1\in C_1$ when  $x\leq \beta$ and $q_2 \in C_2$ when $x>\beta$ for some constant $\beta\in [0,1]$ we will optimize later. Strategy $P_2$ is analogously defined but for distributions $q_3 \in C_1$ and $q_4 \in C_2$. That is,
+\begin{align*}
+    P_1 &= q_1 \mathds{1}\{ x \leq \beta\} + q_2 \mathds{1}\{ x > \beta\}\\
+    P_2 &= q_3 \mathds{1}\{ x \leq \beta\} + q_4 \mathds{1}\{ x > \beta\}.
+\end{align*}
+In particular, for some $\epsilon>0$, $q_a \in C_1$ and $q_b \in C_2$ (which will be described shortly), the four distribution are 
+\begin{equation}
+  q_1 = q_a - \epsilon v,
+  q_2 = q_b - \epsilon v,
+  q_3 = q_a + \epsilon v,\text{ and }
+  q_4 = q_b + \epsilon v.
+\end{equation}
+This construction ensures that the feedback distribution of $q_1$ and $q_2$ is the same when playing action $1$ or $2$ (and is the same when following policies $\pi_1$ or $\pi_2$), but the two policies will get different losses when they disagree because $(\ell_1 - \ell_2)^\top v \neq 0$. We will choose $q_a$ and $q_b$ to maximize this difference.
+
+To be precise, define
+$Q_1(q) := \max \{\epsilon'\geq 0: q+\epsilon' v \in C_1, q - \epsilon'v \in C_1\}$
+and
+$Q_2(q) := \max \{\epsilon'\geq 0: q+\epsilon' v \in C_2, q-\epsilon' v \in C_2 \}$
+and choose $q_a \in\argmax_q Q_1(q)$ and $q_b \in \argmax_q Q_2(q)$. The maximum $\epsilon$ translation with $q_1,q_3\in C_1$ and $q_2,q_4\in C_2$ is $\epsilon_0 = \max\{ Q_1(q_a),Q_2(q_b)\}$. Because $C_1$ and $C_2$ are convex, $q_1,q_3\in C_1$ and $q_2,q_4\in C_2$ for all $\epsilon \leq \epsilon_0$.
+
+Next, we create a policy class $\Pi$ that is able to use the context to do better than any fixed action. We will consider the threshold policies 
+\begin{align*}
+  \pi_1(x) &= e_1 \mathds{1}\{ x \leq \beta + \beta_1\} + e_2 \mathds{1}\{ x > \beta+\beta_1\} \text{ and }\\
+  \pi_2(x) &= e_1 \mathds{1}\{ x \leq \beta - \beta_2\} + e_2 \mathds{1}\{ x > \beta-\beta_2\}
+\end{align*}
+for constants $0 < \beta_1 \leq 1- \beta$ and $0 < \beta_2 \leq \beta$, which we will set later. As we can see, both policies use the context to track the optimal action given $x_t$, but do so with some error. Policy $\pi_1$ slightly favors action $1$ and strategy $P_1$ plays distributions which gives lower loss to 1 over action 2. The situation is reversed for $\pi_2$ and $P_2$. Our construction ensures that $\pi_1$ holds a slight edge over $\pi_2$ under $P_1$. We will quantify the difference in expected losses in the next section.
+
+
+\subsection{Calculating the loss differences}
+In the sequel, we will use $\ex_1$ to denote the expectation over context $X$ and adversary action $J\sim P_1|X$. We analogously use $\ex_2$ for expectations over $X$ and $J\sim P_2|X$.
+
+We now show that is possible to set $\beta$, $\beta_1$, and $\beta_2$ so that expected loss difference between $\pi_1$ and $\pi_2$ is $O(\epsilon)$, but the loss of either policy is a constant better than any fixed action. We denote the expected loss of playing action $i$ and following policy $\pi_i$ under strategy $P_j$ by $\ell_i^j:=\ex_{J\sim P_j}[e_i^\top L e_J]$ and $\ell_{\pi_i}^j:=\ex_{J\sim P_j}[\pi_i(x)^\top Le_J]$, respectively. 
+\begin{lemma}\label{lemma:expected.loss.bounds}
+  There exists $\beta$, $\beta_1$, $\beta_2$ and some $\epsilon_0'$ such that, for all $\epsilon\leq\epsilon_0'$, the following inequalities are simultaneously satisfied:
+  \begin{align*}
+    \ell_i^1 - \ell_{\pi_1}^1 &\geq c_1, \\
+    \ell_i^2 - \ell_{\pi_2}^2 &\geq c_1, \\
+    \ell_{\pi_2}^1 - \ell_{\pi_1}^1 &\geq c_2 \epsilon,\\
+    \ell_{\pi_1}^2 - \ell_{\pi_2}^2 &\geq c_2 \epsilon,
+  \end{align*}
+  for some constants $c_1>0$ and $c_2>0$ that depend only on the structure of the game. 
+\end{lemma}
+\begin{proof}
+An easy calculation yields
+\begin{align*}
+  \ell_{\pi_1}^1 &= \ell_1^\top q_1 (\beta - \beta_2) + \ell_1^\top q_1 \beta_2
+          + \ell_1^\top q_2 \beta_1 + \ell_2^\top q_2 (1-\beta-\beta_1),\text{ and }\\
+  \ell_{\pi_2}^1 &= \ell_1^\top q_1 (\beta - \beta_2) + \ell_2^\top q_1 \beta_2
+          + \ell_2^\top q_2 \beta_1 + \ell_2^\top q_2 (1-\beta-\beta_1).
+\end{align*}
+Thus,
+\begin{align*}
+  \ell_{\pi_2}^1 - \ell_{\pi_1}^1
+  &=
+    \ell_2^\top q_1 \beta_2
+    + \ell_2^\top q_2 \beta_1
+    -\ell_1^\top q_1 \beta_2
+    - \ell_1^\top q_2 \beta_1\\
+  &=
+    \beta_2(\ell_2 - \ell_1)^\top q_1 
+    - \beta_1(\ell_1-\ell_2)^\top q_2 \\
+  &=
+    \beta_2(\ell_2 - \ell_1)^\top q_a
+    -\beta_2 \epsilon (\ell_2 - \ell_1)^\top v
+    - \beta_1(\ell_1-\ell_2)^\top q_b
+    + \beta_1 \epsilon  (\ell_1-\ell_2)^\top v\\
+  &=
+    \beta_2(\ell_2 - \ell_1)^\top q_a
+    - \beta_1(\ell_1-\ell_2)^\top q_b
+    + (\beta_1+\beta_2) \epsilon,
+\end{align*}
+where $(\ell_2 - \ell_1)^\top q_a$ and $(\ell_1-\ell_2)^\top q_b$ are both positive constants. For readability, we will define the constants $\delta_{1\rightarrow i} := (\ell_i - \ell_1)^\top q_a>0$ and $\delta_{2 \rightarrow i} := (\ell_i - \ell_2)^\top q_b>0$, where the first quantity is  the excess loss of playing action $i$ instead of action $1$ under $q_a$ (where action $1$ is optimal) and the second is the analogous quantity for $q_b$. Hence, under $P_1$, the excess loss of following policy $\pi_2$ instead of the optimal $\pi_1$ is 
+\begin{align*}
+  \ell_{\pi_2}^1 - \ell_{\pi_1}^1
+  &=
+    \beta_2\delta_{1\rightarrow 2} 
+    -
+    \beta_1 \delta_{2\rightarrow 1}
+    + (\beta_1 + \beta_2)\epsilon .
+\end{align*}
+The calculation for $\ell_{\pi_2}^2 - \ell_{\pi_1}^2$ is quite similar:
+\begin{align*}
+  \ell_{\pi_1}^2 &= \ell_1^\top q_3 (\beta - \beta_2) + \ell_1^\top q_3 \beta_2
+          + \ell_1^\top q_4 \beta_1 + \ell_2^\top q_4 (1-\beta-\beta_1) \text{ and }\\
+  \ell_{\pi_2}^2 &= \ell_1^\top q_3 (\beta - \beta_2) + \ell_2^\top q_3 \beta_2
+          + \ell_2^\top q_4 \beta_1 + \ell_2^\top q_4 (1-\beta-\beta_1),
+\end{align*}
+and so we conclude that
+\begin{align*}
+\ell_{\pi_1}^2 - \ell_{\pi_2}^2
+  &= 
+    \beta_1(\ell_1-\ell_2)^\top q_4 
+    -
+    \beta_2(\ell_2 - \ell_1)^\top q_3\\
+  &=
+    \beta_1(\ell_1-\ell_2)^\top q_b
+    +
+    \epsilon \beta_1 (\ell_1-\ell_2)^\top v
+    -
+    \beta_2(\ell_2 - \ell_1)^\top q_a 
+    - \epsilon  \beta_2(\ell_2 - \ell_1)^\top v\\
+  &=
+    \beta_1\delta_{2\rightarrow 1}
+    -
+    \beta_2\delta_{1\rightarrow 2}
+    + (\beta_1+\beta_2)\epsilon .
+\end{align*}
+
+We also need to evaluate $\ell_i^j - \ell_{\pi_1}^j$ for $j=1,2$. It is easy to calculate $\ell_i^1 = \beta \ell_i^\top q_1 + (1-\beta)\ell_i^\top q_2$, and therefore,
+\begin{align*}
+    \ell_i^1 - \ell_{\pi_1}^1
+  &=
+    \beta \ell_i^\top q_1 + (1-\beta)\ell_i^\top q_2 - \beta\ell_1^\top q_1
+    - (1-\beta - \beta_1)\ell_2^\top q_2- \beta_1 \ell_1^\top q_2\\
+  &=
+    \beta (\ell_i - \ell_1)^\top q_1 + (1-\beta)(\ell_i - \ell_2)^\top q_2
+    + \beta_1( \ell_2-\ell_1)^\top q_2\\
+  &=
+    \beta \delta_{1\rightarrow i}
+    + (1-\beta)\delta_{2 \rightarrow i}
+    - \beta_1 \delta_{2\rightarrow 1}
+    -\epsilon \left(
+    \beta (\ell_i - \ell_1)^\top v  
+    +(1-\beta)(\ell_i - \ell_2)^\top v
+    -\beta_1 \right)\\
+  &=
+    \beta \delta_{1\rightarrow i}+ (1-\beta)\delta_{2 \rightarrow i} - \beta_1 \delta_{2\rightarrow 1}
+    +\epsilon\left(\beta+\beta_1
+    -(\ell_i - \ell_2)^\top v\right)\\
+    &=
+    \beta \delta_{1\rightarrow i}+ (1-\beta)\delta_{2 \rightarrow i} - \beta_1 \delta_{2\rightarrow 1}
+    +\epsilon\left(\beta+\beta_1
+    -\frac{1+\left(2\ell_i - \ell_2-\ell_1\right)^\top v}{2}\right),
+\end{align*}
+where the last line used $(\ell_i - \ell_2)^\top v = (\ell_i - \ell_2)^\top v - \frac12(\ell_1 - \ell_2)^\top v+ \frac12 = (\ell_i - (\ell_1 - \ell_2)/2)^\top v + \frac12$.
+Similarly, the $j=2$ case is
+\begin{align*}
+    \ell_i^2 - \ell_{\pi_2}^2
+  &=
+    \beta \ell_i^\top q_3 + (1-\beta)\ell_i^\top q_4 - \beta_2\ell_2^\top q_3
+    - (1-\beta)\ell_2^\top q_4- (1-\beta -\beta_2) \ell_1^\top q_3\\
+  &=
+    \beta (\ell_i - \ell_1)^\top q_3 + (1-\beta)(\ell_i - \ell_2)^\top q_4
+    + \beta_2( \ell_1 - \ell_2)^\top q_3\\
+  &=
+    \beta \delta_{1\rightarrow i}
+    + (1-\beta)\delta_{2\rightarrow i}
+    - \beta_2 \delta_{1\rightarrow 2}
+    + \epsilon\left(\beta (\ell_i - \ell_1)^\top v + (1-\beta)(\ell_i - \ell_2)^\top v + \beta_2\right)\\
+    &=
+    \beta \delta_{1\rightarrow i}
+    + (1-\beta)\delta_{2\rightarrow i}
+      - \beta_2 \delta_{1\rightarrow 2}
+      +\epsilon\left(      
+       (\ell_i - \ell_2)^\top v  - (\beta-\beta_2)
+      \right)\\
+  &=
+    \beta \delta_{1\rightarrow i}
+    + (1-\beta)\delta_{2\rightarrow i}
+      - \beta_2 \delta_{1\rightarrow 2}
+      +\epsilon\left(         
+    \frac{1+\left(2\ell_i - \ell_2-\ell_1\right)^\top v}{2}
+    - (\beta-\beta_2)
+      \right).
+\end{align*}
+
+% The last two cases can be deduced by combining the equalities above:
+% \begin{align*}
+%   \ell_1^1 - \ell_{\pi_2}^1
+%   &=
+%     \ell_1^1 - \ell_{\pi_1}^1 + (\ell_{\pi_1}^1 - \ell_{\pi_2}^1) \\
+%   &= (1-\beta)\delta_{2\rightarrow 1} - \beta_1\delta_{1\rightarrow 2} -\epsilon( 1 - (\beta-\beta_2)),\text{ and }\\
+%   \ell_2^2 - \ell_{\pi_1}^2
+%   &=
+%     \ell_2^2 - \ell_{\pi_2}^2 + (\ell_{\pi_2}^2 - \ell_{\pi_1}^2)\\
+%   &=
+%     \beta\delta_{1\rightarrow 2} - \beta_2\delta_{2\rightarrow 1} - \epsilon(\beta + \beta_1).
+% \end{align*}
+
+We now optimize for $\beta$, $\beta_1$, and $\beta_2$. First, it suffices to take $\beta = \frac12$, which lets us bound
+\begin{align*}
+    \ell_i^1 - \ell_{\pi_1}^1
+  &=
+    \frac{\delta_{1\rightarrow i}+\delta_{2 \rightarrow i}}{2} - \beta_1 \delta_{2\rightarrow 1}
+    +\epsilon\left(\beta_1
+    -\frac{\left(2\ell_i - \ell_2-\ell_1\right)^\top v}{2}\right) \\
+&\geq
+    \frac{\delta_{1\rightarrow i}+\delta_{2 \rightarrow i}}{2}
+    -\beta_1\delta_{2\rightarrow 1}
+    -\frac{\epsilon}{2}
+    \left\vert \left(2\ell_i - \ell_2-\ell_1\right)^\top v\right\vert \text{ and }\\
+  \ell_i^2 - \ell_{\pi_2}^2 
+  &=
+    \frac{\delta_{1\rightarrow i}+\delta_{2 \rightarrow i}}{2}
+      - \beta_2 \delta_{1\rightarrow 2}
+      +\epsilon\left( \beta_2 
+    +\frac{\left(2\ell_i - \ell_2-\ell_1\right)^\top v}{2}
+    \right)\\
+          &\geq
+          \frac{\delta_{1\rightarrow i}+\delta_{2 \rightarrow i}}{2}
+      - \beta_2 \delta_{1\rightarrow 2}
+      -\frac{\epsilon}{2}
+        \left\vert \left(2\ell_i - \ell_2-\ell_1\right)^\top v\right\vert.
+\end{align*}
+
+We define the two constants 
+\[
+c_3 = \max_i \left\vert \left(2\ell_i - \ell_2-\ell_1\right)^\top v\right\vert \text{ and } c_1 = \min_i\frac{ \delta_{1\rightarrow i}+\delta_{2\rightarrow i}}{4},
+\]
+where the latter is strictly positive; the non-degeneracy of action 1 implies that  $\delta_{1\rightarrow i}>0$ for all $i\neq 1$, and the non-degeneracy of action 2 implies that $\delta_{2\rightarrow i}>0$ for all $i\neq 2$. Combining $\epsilon \leq \epsilon_0$ with these constants give the bounds
+\begin{align*}
+  \ell_i^1 - \ell_{\pi_1}^1
+  &\geq
+  2c_1  - \beta_1\delta_{2\rightarrow 1} - \epsilon_0 c_3
+\text{ and}\\
+  \ell_i^2 - \ell_{\pi_2}^2
+  &\geq
+  2c_1 - \beta_2\delta_{1\rightarrow 2} - \epsilon_0 c_3.
+\end{align*}
+Therefore, under the assumption that $\epsilon_0 < c_1/c_3$, choosing $\beta_1 \leq \frac{ c_1 - \epsilon_0 c_3}{\delta_{2\rightarrow 1}}$ and $\beta_2 \leq \frac{ c_1 - \epsilon_0 c_3}{\delta_{1\rightarrow 2}}$ yields the first two inequalities.
+
+% We can lower bound the cross terms by 
+% \begin{align*}
+%   \ell_1^1 - \ell_{\pi_2}^1
+%   &\geq
+%     \frac{\delta_{2\rightarrow 1}}{2} - \beta_1\delta_{1\rightarrow 2} -\frac{\epsilon}{2}
+%     \geq
+%     c_4 - \beta_1\delta_{1\rightarrow 2} -\frac{\epsilon_0}{2}
+%     \text{ and }\\
+%   \ell_2^2 - \ell_{\pi_1}^2
+%   &\geq
+%     \frac{\delta_{1\rightarrow 2}}{2} - \beta_2\delta_{2\rightarrow 1} -\frac{\epsilon}{2}
+%   \geq
+%     c_4 - \beta_2\delta_{2\rightarrow 1} -\frac{\epsilon_0}{2},
+% \end{align*}
+% and so it suffices to take 
+% $\beta_1 \leq \frac{ c_4 - \epsilon_0}{2\delta_{1\rightarrow 2}}$ and $\beta_2 \leq \frac{ c_4 - \epsilon_0}{2\delta_{2\rightarrow 1}}$
+% to guarantee that $  \ell_1^1 - \ell_{\pi_2}^1 \geq c_4/4$ and $\ell_2^2 - \ell_{\pi_1}^2\geq c_4/4$.
+
+
+We now turn to the latter two inequalities and notice that setting $\beta_2 =  \beta_1 \frac{\delta_{2\rightarrow 1}}{\delta_{1\rightarrow 2}}$ implies that 
+\[
+  \ell_{\pi_2}^1 - \ell_{\pi_1}^1 = \ell_{\pi_1}^2-\ell_{\pi_2}^2 = \epsilon \beta_1 \left( 1 + \frac{\delta_{2\rightarrow 1}}{\delta_{1\rightarrow 2}}\right).
+\]
+Therefore, we choose  $\beta_1 =\frac{ c_1 - \epsilon_0 c_3}{2\delta_{2\rightarrow 1}}$ and
+$\beta_2 = \frac{ c_1 - \epsilon_0 c_3}{2\delta_{1\rightarrow 2}}$, which satisfies the first two inequalities, has $\beta_2 =  \beta_1 \frac{\delta_{2\rightarrow 1}}{\delta_{1\rightarrow 2}}$, and therefore implies that
+\[
+  \ell_{\pi_2}^1 - \ell_{\pi_1}^1 = \ell_{\pi_1}^2-\ell_{\pi_2}^2 \geq \frac{\epsilon}{2} ( c_1 - \epsilon_0 c_3) \left( \frac{1}{\delta_{2\rightarrow 1}} + 
+    \frac{1}{\delta_{1\rightarrow 2}}\right).
+\]
+That is, we may take $c_2 = \frac12( c_1 - \epsilon_0 c_3) \left( \frac{1}{\delta_{2\rightarrow 1}} + 
+  \frac{1}{\delta_{1\rightarrow 2}}\right)$
+and long as $\epsilon_0 \leq c_4/(2c_3)$, which we may assume (since $\epsilon_0$ is a parameter we control as well).
+\end{proof}
+
+\subsection{Bounding the KL-Divergence}
+At a high level, any randomized algorithm must make similar decisions when given similar data. In our setting, the algorithm observes the contexts, which do not depend on the stategy of the adversary, as well as the feedback symbols. An important step in the argument is to lower bound the difference in feedback distributions as a function of the expected number of plays of different actions. As is standard, we will use the KL-divergence between distribution $p$ and $q$, denoted by $\KL(p\Vert q)$, to quantify differences in distributions. 
+
+Denote the symbol received at round $t$ by $f_t\in\Sigma$. Let $P_j^*(\cdot| f_{1:t-1},x_{1:t})$ be the mass function over $\Sigma$ at round $t$ generated by the algorithm's choices if the adversary uses strategy $P_j$, and let $N_i$ be the number of times the algorithm plays action $i$.
+\begin{lemma}\label{lemma:feedback.kl}
+  For all sufficiently small $\epsilon$, the relative entropy between the feedback symbols of strategy $P_1$ and $P_2$ has the upper bound
+  \begin{equation}
+    \KL(P_1^*||P_2^*)
+  \leq
+      \sum_{i>2} \ex_1[N_i] c_5\epsilon^2,
+\end{equation}
+where $c_5$ is some game-dependent constant. 
+\end{lemma}
+\begin{proof}
+  Fix some algorithm $\mathcal A$ which maps the information available for selecting $I_t$, denoted $H^t := f_{1:t-1},x_{1:t}$.  We can apply the KL-divergence chain rule $T$ times to conclude
+  \begin{align*}
+   \KL(P_2^*||P_1^*)
+    &=
+      \sum_{t=1}^{T-1}\sum_{f_{1:t-1}}P_2^*(f_{1:t-1}) \sum_{f_t} P_2^*(f_t|H^t)
+      \log \frac{ P_2^*(f_t|H^t)}{ P_1^*(f_t|H^t)}\\
+    &=
+      \sum_{t=1}^{T-1}\sum_{f_{1:t-1}}P_2^*(f_{1:t-1})
+      \sum_{i=1}^N\mathds{1}\left\{ \mathcal A(H^t) = i \right\}
+      \sum_{f_t} P_2^*(f_t|H^t)
+      \log \frac{ P_2^*(f_t|H^t)}{ P_1^*(f_t|H^t)}.
+  \end{align*}
+
+By a slight abuse of notation, define $S_i P_j$ to be the distribution of feedback symbols if action $i$ is played under strategy $P_j$ with $x_t$ marginalized out, i.e. $S_i P_1 = \beta S_i q_1 + (1-\beta) S_i q_2$ and $S_i P_2 = \beta S_i q_3 + (1-\beta) S_i q_4$. However, because $v\in\ker(S_{1,2})$, we have that $S_i P_1 = S_i P_2$ for $i=1,2$. Hence, the $\mathcal A(H^t) \in\{ 1, 2\}$ terms in the summation vanish. We can then evaluate
+\begin{align*}
+    \KL(P_1^*||P_2^*)
+    &=
+      \sum_{t=1}^{T-1}\sum_{f_{1:t-1}}P_1^*(f_{1:t-1})
+      \sum_{i>2}^N\mathds{1}\left\{ \mathcal A(H^t) = i \right\}
+      \sum_{f_t} P_1^*(f_t|H^t)
+      \log \frac{ P_1^*(f_t|H^t)}{ P_2^*(f_t|H^t)}\\
+    &\leq
+      \sum_{i>2} \ex_1[N_i] \KL( S_i P_1\Vert S_i P_2)\\
+    &\leq
+      \sum_{i>2} \ex_1[N_i] \KL( P_1\Vert P_2).
+\end{align*}
+
+Thus, we may turn a bound on $\KL(P_1\Vert P_2)$ into a bound on $\KL(P_1^*\Vert P_2^*)$, so let us consider the first quantity. We will briefly be explicit about the $X$ dependence. Let $P_j(J,X)$, for $j=1,2$, denote the joint distribution of the context $X\sim \mathrm{Uniform}([0,1])$ and adversary choice $J\sim P_j|X$. The chain rule yields
+\begin{align*}
+    \KL(P_1(J,X)\Vert P_2(J,X))
+  &=
+    \KL(P_1(X)\Vert P_2(X)) +
+    \KL(P_1(J|X)\Vert P_2(J|X))\\
+  &=
+    0 +
+    \beta \KL(q_1\Vert q_3) + (1-\beta) \KL(q_2\Vert q_4).
+\end{align*}
+To bound each term, recall that $q_1 = q_a - \epsilon v$ and $q_3 = q_a + \epsilon v$ and apply Lemma~12 from \cite{bartok2011minimax}, which implies that, for all $\epsilon$ small enough and some positive constants $c_1'$ and $c_2'$,
+\[
+  \KL(q_a-\epsilon v || q_a + \epsilon v) \leq c_1' \epsilon^2\Vert v\Vert_\infty^2
+  \text{ and }
+  \KL(q_b-\epsilon v || q_b + \epsilon v) \leq c_2' \epsilon^2\Vert v\Vert_\infty^2.
+\]
+
+Thus, our total relative entropy bound is
+\begin{equation}
+    \KL(P_1^*||P_2^*)
+  \leq
+      \sum_{i>2} \ex_1[N_i] c_5\epsilon^2
+\end{equation}
+with $c_5 = \max\{ c_1', c_2'\}\Vert v \Vert_\infty^2$ and for all $\epsilon$ small enough.. 
+\end{proof}
+The next tool we need is a way to translate relative entropy bounds into high probability bounds: a high-probability version of Pinsker's inequality.
+\begin{lemma}\cite[Lemma 2.6]{Tsybakov-2008-book}
+For probability distribution $P$ and $Q$ with $P\ll Q$,
+  \[
+    \int \min \{ dP, dQ \} \geq \frac12 \exp(- \KL(P \Vert Q)).
+    \]
+\end{lemma}
+In particular, for some event $A$ with $P(A) \leq Q(A)$, integrating the indicator function of $A$ and $A^c$ yields $P(A) \geq \frac12 \exp(- \KL(P \Vert Q))$ and $Q(A^c)\geq \frac12 \exp(- \KL(P \Vert Q))$. In the case of $P(A) > Q(A)$, the same argument applied to $A^c$ yields the same conclusion, which implies that
+\begin{equation}\label{eqn:pinsker.high.prob}
+  P(A) + Q(A^c)  \geq \exp(- \KL(P \Vert Q)).
+\end{equation}
+
+
+\subsection{Finalizing the Bound}
+We are now ready to prove a lower bound on regret, and we begin by exploiting the construction of the game which allows  the expected regret to be easily calculated from the action counts. Let $N_{\pi_i}(T)$ be the number of times algorithm $\mathcal A$ chooses policy $\pi_i$ over a game of length $T$, which is a random variable dependent on the context and the random choices of the algorithm and adversary. We will also define $N_0(T)$ to be the number of times an $\mathcal A$ chooses any action $i>2$.
+
+We assume that the strategy uses some $\beta,\beta_1$, and $\beta_2$ that satisfy Lemma~\ref{lemma:expected.loss.bounds} and that $\epsilon$ is small enough such that Lemmas~\ref{lemma:expected.loss.bounds} and \ref{lemma:feedback.kl} hold. Under $P_1$, the optimal policy is $\pi_1$, playing policy $\pi_2$ incurs at least $c_2 \epsilon$ more expected loss, and playing any other action incurs at least $c_1$ more expected loss. The following construction is modeled after the slick proof of \citet{lattimore2018cleaning}. We can lower bound the expected regret under $P_1$ by
+\begin{align*}
+  \ex_1[\regret_T]
+  &\geq
+    \ex_1\left[ \sum_{t=1}^T\sum_{i=1}^N
+    \mathds{1}\left\{ \mathcal A(H^t) = i \right\}
+    (\ell_i - \ell_{\pi_1(x_t)})^\top J_t
+    \right]\\
+  &\geq
+    \ex_1\left[ \sum_{t=1}^T\sum_{i=3}^N
+    \mathds{1}\left\{ \mathcal A(H^t) = i \right\}
+    (\ell_i - \ell_{\pi_1(x_t)})^\top J_t\right]\\
+    &\quad +\ex_1\left[\sum_{t=1}^T
+    \mathds{1}\left\{ \mathcal A(H^t) = \pi_2(x_t) \right\}    
+    (\ell_{\pi_2(x_t)} - \ell_{\pi_1(x_t)})^\top J_t
+    \right]\\
+  &\geq
+    c_1\ex_1\left[ \sum_{t=1}^T\mathds{1}\left\{ \mathcal A(H^t) > 2 \right\}
+    \right]
+    +
+    \epsilon c_2 \ex_1\left[\sum_{t=1}^T\mathds{1}\left\{ \mathcal A(H^t) = \pi_2(x_t) \right\}\right]\\
+  &=
+    c_1\ex_1\left[N_0(T)\right]
+    +
+    \epsilon c_2 \ex_1\left[N_2(T)\right]\\
+  &\geq
+    c_1\ex_1\left[N_0(T)\right]
+    + \frac{\epsilon c_2 T}{2}
+    P_1\left(N_2(T)\geq \frac{T}{2}\right).
+\end{align*}
+Similarly, we can bound the expected regret under $P_2$ by 
+\begin{align*}
+  \ex_2[\regret_T]
+  &\geq
+    \ex_2\left[ \sum_{t=1}^T
+    \sum_{i=1}^N
+    \mathds{1}\left\{ \mathcal A(H^t) = i \right\}    
+    (\ell_i - \ell_{\pi_2(x_t)})^\top J_t
+    \right]\\
+  &\geq
+    c_1\ex_2\left[ \sum_{t=1}^T\mathds{1}\left\{ \mathcal A(H^t) > 2 \right\}
+    \right]
+    +
+    \epsilon c_2 \ex_2\left[\sum_{t=1}^T\mathds{1}\left\{ \mathcal A(H^t) = \pi_1(x_t) \right\}\right]\\
+  &\geq
+    \min\{ c_1,\epsilon c_2\}
+    \ex_2\left[N_0(T) + N_1(T)\right]\\
+  &\geq
+    \min\{ c_1,\epsilon c_2\}\frac{T}{2}
+    P_2\left(N_0(T) + N_1(T)>\frac{T}{2}\right)\\
+  &\geq
+    \min\{ c_1,\epsilon c_2\}\frac{T}{2}
+    P_2\left(N_2(T)\leq\frac{T}{2}\right),
+\end{align*}
+with the last line following from $N_2(T) + N_1(T) + N_0(T) \leq T$.
+Note that  we simply dropped the terms where the algorithms plays action $1$ or $2$ but in disagreement with both policies.
+
+The final adversary strategy will be a uniform mixture between $P_1$ and $P_2$, and, under the assumption that $\epsilon\leq c_1/c_2$,
+\begin{equation}
+  \label{eqn:regret.as.indicators}
+    \ex[\regret_T]
+  =
+    \frac{\ex_1[\regret_T] + \ex_2[\regret_T]}{2}
+  \geq
+    \ex_1\left[N_0(T)\right]c_1
+    + \frac{\epsilon c_2 T}{2}
+    \left(
+    P_1\left(N_2(T)\geq \frac{T}{2}\right)
+    +    
+    P_2\left(N_2(T)\leq\frac{T}{2}\right)
+    \right).
+  \end{equation}
+  
+We can finally assemble all the ingredients into a lower bound proof.
+\begin{proof}[Proof of Theorem~\ref{thm:lower.bound}]
+  First, by definition, $N_0(T) = \sum_{i>2}^N N_i(T)$. Now, combining the regret lower bound from \eqref{eqn:regret.as.indicators} with \eqref{eqn:pinsker.high.prob} and Lemma~\ref{lemma:feedback.kl} yields
+\begin{align*}   
+  \ex[\regret_T]
+&\geq
+    \ex_1\left[N_0(T)\right]c_1
+    + \frac{\epsilon c_2 T}{2}
+  \exp(-\KL(P_1\Vert P_2) )\\
+&\geq
+      \ex_1\left[N_0(T)\right]c_1
+    + \frac{\epsilon c_2 T}{2}
+    \exp(- \ex_1[N_0(T)] c_5 \epsilon^2 ).
+\end{align*}
+If $\ex_1\left[N_0(T)\right] \geq T^{2/3}$, then the desired bound follows immediately. Otherwise, setting $\epsilon = T^{-\frac13}$ yields 
+\begin{align*}   
+  \ex[\regret_T]
+&\geq
+    \ex_1\left[N_0(T)\right]c_1
+    + \frac{\epsilon c_2 T}{2}
+  \exp(-\KL(P_1\Vert P_2) )\\
+&\geq
+      \ex_1\left[N_0(T)\right]c_1
+    +  T^{\frac23}\frac{c_2}{2}
+    \exp(- \ex_1[N_0(T)] c_5 T^{-\frac23} )
+\end{align*}
+with the term in the exponential approaching 0. Since $\epsilon$ is a decreasing sequence, all the assumptions that $\epsilon$ is smaller than certain quantities will eventually be satisfied.
+\end{proof}
+
+\iffalse
+\paragraph{A detail}\todo{remove this paragraph}
+While the regret bound, proven w.r.t. the two policies $\pi_1$ and $\pi_2$ and all fixed actions, 
+In particular, there exist a policy that is better that $\pi_1$ and $\pi_2$: the one that switches exactly correctly at $\beta$. To fix this, we can instead define
+\[
+  P_1 = q_1 \mathds{1}\{x \leq \beta-\beta_2\} + q_2 \mathds{1}\{x \geq \beta+\beta_1\}
+  + \frac{q_1+q_2}{2}\mathds{1}\{\beta-\beta_2\leq x \leq \beta+\beta_1\}
+\]
+and analogously for $P_2$. Then the ``perfect policy'' from before does not do any better than $\pi_1$ or $\pi_2$ in expectation.
+
+Unfortunately, this set of alternatives does not have the nice property that the feedback distribution of playing $\pi_1$ under $P_1$ and $P_2$ is identical; there is some small change from $S_1 q_a$ to $S_1 q_b$. It might be possible to balance terms and control the regret.
+\fi
+
+
+\end{document}

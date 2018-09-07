@@ -1,0 +1,35 @@
+Rebuttal:
+
+We give thanks to all for spending the effort to understand our submission and for the encouraging feedback!
+
+Reviewer 1:
+We tried to but could not achieve the sqrt(T) with a relaxation algorithm. It is not even known how to do this in the simpler case of bandit feedback, but we agree that sqrt(T) would be a good contribution (we have some ideas).
+
+We will beef up the related works section (especially adding citation about other partial feedback games such as graph feedback) and will work on the unclear sections of the proof. Thanks for the specifics; we will make the corrections and have tried to answer your questions below.
+
+L125: The matrix L is fixed, but ell_i is the expected loss under the adversary's empirical distribution and can still be impossible to learn. We'll clarify.
+129: to calculate v, it suffices to find a pseudo inverse of S
+Alg1: EXP4 used the estimator described on L123, but the recentering is novel (actually concurrently proposed by [11])
+L258: yes, good point
+L262: "all fixed actions" means adding the identity policies to \Pi. A lower bound with just an arbitrary policy class was too weak of a result, as it is easy to make all the policies bad.
+L271: rank nullity theorem
+
+
+Reviewer 3:
+
+Models:
+Our intention was not to be coy about the iid assumption, which is critical (it is first mentioned in the abstract, L13), but we agree that all model assumptions should be very clear, an we will emphasize that the exp4.pm regret bounds hold for adaptive x_t, j_t, but the relaxation algorithm requires x_t to be i.i.d. and also needs access to x_t samples. We will clarity in the intro and the section headers.
+
+We completely agree with the reviewer: the interesting questions are how Pi and R_T interact. We have only taken the most coarse view, either finding bounds in terms of log |Pi| or the Rademacher complexity-like term in Corollary 1. In our defense, no paper in the contextual bandit setting has a more refined analysis either.
+
+The complexity measure for Pi is derived by what is needed to be able to prove admissibility of the relaxation, but other cleaner notions may be possible. In the full information setting, sequential Rademacher complexities to handle adversarial contexts. It is unknown how to extend the relaxation approach to adversarial contexts in both bandit or partial monitoring, so the Rademacher-like term is the most natural in this setting. However, the partial monitoring setting is more nuanced than the bandit setting; indeed, if we take Pi to be the set of constant actions, then T^1/2 regret is possible with only local observability, so there is possibly a more subtle boundary for the rates.
+
+Additionally, there are more refined, game-dependent notions of complexity where the uniform distribution over the hypercube in the complexity term is replaced with a uniform distribution over the columns of H, and hence the regret will depend on the structure of the feedback through more than a dependence on the number of actions. We omitted these arguments for brevity, but are working on using them for a more refined bound.
+
+Finally, the j_t = f(x_t) case was studied in [4], but only in the case where f is a linear or logistic function; indeed sqrt(T) is possible without a pairwise observability condition. We will add this comparison.
+
+
+Reviewer 4:
+We will be more clear about the small algorithmic innovations and the intuition behind them. Providing a clear picture of the lower bound shorter than a few pages was difficult and we opted to describe the construction in detail. The high level intuition is as follows. In the contextual case, pick arbitrary non-neighboring actions i and j; there is a policy class there i and j are essentially neighbors in that determining the optimal policy will require resolving between the loss of i and j. Hence, if there exists such a pair, then the algorithm will be forces to play other actions to resolve ell_i-ell_j, and the usual lower bound implies a T^2/3 lower bound. We'll add this intuition and streamline the rest.
+
+We'll also address the rest of your fixes and tone down the optimality claims and add dimensions. Extra thanks for the correct inequality!

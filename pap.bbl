@@ -1,0 +1,118 @@
+\begin{thebibliography}{18}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Abernethy and Rakhlin(2009)]{abernethy2009beating}
+Jacob~D Abernethy and Alexander Rakhlin.
+\newblock Beating the adaptive bandit with high probability.
+\newblock In \emph{COLT}, 2009.
+
+\bibitem[Alon et~al.(2015)Alon, Cesa-Bianchi, Dekel, and Koren]{alon2015online}
+Noga Alon, Nicolo Cesa-Bianchi, Ofer Dekel, and Tomer Koren.
+\newblock Online learning with feedback graphs: Beyond bandits.
+\newblock In \emph{COLT}, pages 23--35, 2015.
+
+\bibitem[Audibert et~al.(2013)Audibert, Bubeck, and Lugosi]{audibert2013regret}
+Jean-Yves Audibert, S{\'e}bastien Bubeck, and G{\'a}bor Lugosi.
+\newblock Regret in online combinatorial optimization.
+\newblock \emph{Mathematics of Operations Research}, 39\penalty0 (1):\penalty0
+  31--45, 2013.
+
+\bibitem[Bart{\'o}k and Szepesv{\'a}ri(2012)]{bartok2012partial}
+G{\'a}bor Bart{\'o}k and Csaba Szepesv{\'a}ri.
+\newblock Partial monitoring with side information.
+\newblock In \emph{International Conference on Algorithmic Learning Theory},
+  pages 305--319. Springer, 2012.
+
+\bibitem[Bart{\'o}k et~al.(2011)Bart{\'o}k, P{\'a}l, and
+  Szepesv{\'a}ri]{bartok2011minimax}
+G{\'a}bor Bart{\'o}k, D{\'a}vid P{\'a}l, and Csaba Szepesv{\'a}ri.
+\newblock Minimax regret of finite partial-monitoring games in stochastic
+  environments.
+\newblock In \emph{COLT}, volume 2011, pages 133--154, 2011.
+
+\bibitem[Bart{\'o}k et~al.(2014)Bart{\'o}k, Foster, P{\'a}l, Rakhlin, and
+  Szepesv{\'a}ri]{bartok2014partial}
+G{\'a}bor Bart{\'o}k, Dean~P Foster, D{\'a}vid P{\'a}l, Alexander Rakhlin, and
+  Csaba Szepesv{\'a}ri.
+\newblock Partial monitoring—classification, regret bounds, and algorithms.
+\newblock \emph{Mathematics of Operations Research}, 39\penalty0 (4):\penalty0
+  967--997, 2014.
+
+\bibitem[Bubeck et~al.(2012)Bubeck, Cesa-Bianchi, et~al.]{bubeck2012regret}
+S{\'e}bastien Bubeck, Nicolo Cesa-Bianchi, et~al.
+\newblock Regret analysis of stochastic and nonstochastic multi-armed bandit
+  problems.
+\newblock \emph{Foundations and Trends{\textregistered} in Machine Learning},
+  5\penalty0 (1):\penalty0 1--122, 2012.
+
+\bibitem[Cesa-Bianchi et~al.(2006)Cesa-Bianchi, Lugosi, and
+  Stoltz]{cesa2006regret}
+Nicolo Cesa-Bianchi, G{\'a}bor Lugosi, and Gilles Stoltz.
+\newblock Regret minimization under partial monitoring.
+\newblock \emph{Mathematics of Operations Research}, 31\penalty0 (3):\penalty0
+  562--580, 2006.
+
+\bibitem[Dud{\'\i}k et~al.(2016)Dud{\'\i}k, Haghtalab, Luo, Schapire,
+  Syrgkanis, and Vaughan]{dudik2016oracle}
+Miroslav Dud{\'\i}k, Nika Haghtalab, Haipeng Luo, Robert~E Schapire, Vasilis
+  Syrgkanis, and Jennifer~Wortman Vaughan.
+\newblock Oracle-efficient learning and auction design.
+\newblock \emph{arXiv preprint arXiv:1611.01688}, 2016.
+
+\bibitem[Foster and Rakhlin(2012)]{foster2012no}
+Dean Foster and Alexander Rakhlin.
+\newblock No internal regret via neighborhood watch.
+\newblock In \emph{Artificial Intelligence and Statistics}, pages 382--390,
+  2012.
+
+\bibitem[{Lattimore} and {Szepesvari}(2018)]{lattimore2018cleaning}
+T.~{Lattimore} and C.~{Szepesvari}.
+\newblock {Cleaning up the neighborhood: A full classification for adversarial
+  partial monitoring}.
+\newblock \emph{ArXiv e-prints}, May 2018.
+
+\bibitem[Manski(2009)]{manski2009identification}
+Charles~F Manski.
+\newblock \emph{Identification for prediction and decision}.
+\newblock Harvard University Press, 2009.
+
+\bibitem[Marschak and Andrews(1944)]{marschak1944random}
+Jacob Marschak and William~H Andrews.
+\newblock Random simultaneous equations and the theory of production.
+\newblock \emph{Econometrica}, pages 143--205, 1944.
+
+\bibitem[Piccolboni and Schindelhauer(2001)]{piccolboni2001discrete}
+Antonio Piccolboni and Christian Schindelhauer.
+\newblock Discrete prediction games with arbitrary feedback and loss.
+\newblock In \emph{Computational Learning Theory}, pages 208--223. Springer,
+  2001.
+
+\bibitem[Rakhlin and Sridharan(2016)]{rakhlin2016bistro}
+Alexander Rakhlin and Karthik Sridharan.
+\newblock Bistro: An efficient relaxation-based method for contextual bandits.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, 2016.
+
+\bibitem[Rakhlin et~al.(2012)Rakhlin, Shamir, and Sridharan]{rakhlinrelax}
+Alexander Rakhlin, Ohad Shamir, and Karthik Sridharan.
+\newblock Relax and localize: From value to algorithms.
+\newblock \emph{CoRR}, abs/1204.0870, 2012.
+
+\bibitem[Syrgkanis et~al.(2016)Syrgkanis, Luo, Krishnamurthy, and
+  Schapire]{syrgkanis2016improved}
+Vasilis Syrgkanis, Haipeng Luo, Akshay Krishnamurthy, and Robert~E Schapire.
+\newblock Improved regret bounds for oracle-based adversarial contextual
+  bandits.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pages
+  3135--3143, 2016.
+
+\bibitem[Tsybakov(2008)]{Tsybakov-2008-book}
+Alexandre~B. Tsybakov.
+\newblock \emph{Introduction to Nonparametric Estimation}.
+\newblock Springer Publishing Company, Incorporated, 1st edition, 2008.
+\newblock ISBN 0387790519, 9780387790510.
+
+\end{thebibliography}
