@@ -905,15 +905,24 @@ Combining with the above expression produces
     \exop_{\hat\Delta_t \sim p_t}\left[
     q^\top\hat\Delta_t
     +  \sum_{i=1}^N R_i\left(\hist^{t},\rho\right)
+    \right]
+    \\
+    &=
+      \argmin_{q \in \triangle_{N}}
+  \sup_{p_t \in \triangle_{\mathcal D}'} 
+    \sum_{i=1}^N
+    \exop_{\hat\Delta_t \sim p_t}\left[
+    q^\top\hat D_i\Delta_t
+    +   R_i\left(\hist^{t},\rho\right)
     \right].
 \end{align*}
 By construction, no entry of $q_t(\rho)$ is below $\gamma$. It is then easy to check that, for $q_t^* = \ex_{\rho}[q_t^*(\rho)]$ and $q_t = \ex_{\rho}[q_t(\rho)]$,
-\[
-  \ex_{I_t \sim q_t}\left[ \Delta_t ^\top e_{I_t} \right] = \Delta_t^\top q_t  
-  \leq \Delta_t^\top q_t^* + N\gamma
+\begin{align*}
+  \ex_{I_t \sim q_t}\left[ e_{I_t}^\top \Delta_t \right] = q_t^\top \Delta_t^\top 
+  \leq (q_t^*)^\top \Delta_t + N\gamma
   =
-  \ex_{I_t\sim q_t} \left[ \hat\Delta_t(I_t,j_t,q_t)^\top q_t^* \right] + N\gamma,
-\]
+  \sum_{i=1}^N \ex_{I_t\sim q_t} \left[(q_t^*)^\top D_i \hat\Delta_t(I_t,j_t,q_t)^\top \right] + N\gamma,
+\end{align*}
 where we have been explicit that $\hat\Delta_t(I_t,j_t,q_t)$ is a random variable that depends on the player actions and the $q_t$ (since $\Z_t$'s distribution is a function of $q_t$). 
 
 For every fixed $x_t$, we can apply the above inequality and unpack the definition of the relaxation to find
@@ -925,19 +934,19 @@ For every fixed $x_t$, we can apply the above inequality and unpack the definiti
     +  \sum_{i=1}^N \exop_\rho\left[R_i\left(\hist^{t},\rho\right)\right]\right]\\
   &\quad + (T-t)N\gamma\\
   &\leq
-    \sup_{j_t} \mathop{\ex}_{I_t\sim q_t}\left[(q_t^*)^\top\hat\Delta_t(I_t,j_t,q_t)
+    \sup_{j_t} \sum_{i=1}^N \mathop{\ex}_{I_t\sim q_t}\left[(q_t^*)^\top D_i \hat\Delta_t(I_t,j_t,q_t)
     +
-  \sum_{i=1}^N\exop_\rho\left[R_i\left(\hist^{t},\rho\right)\right]\right]\\
+  \exop_\rho\left[R_i\left(\hist^{t},\rho\right)\right]\right]\\
   &\quad+(T-t+1)N\gamma.
 \end{align*}
 Defining $A_i(\pi) = -\sum_{s=1}^{t-1} \pi(x_s)^\top D_i \hat \Delta_s - \sum_{s=t+1}^T 2\pi(x_s) \eepsilon_{s,i} \Z_{s}$, the previous line is equal to
 \begin{align*}
-\lefteqn{\sup_{j_t} \mathop{\ex}_{I_t\sim q_t}\left[(q_t^*)^\top\hat\Delta_t(I_t,j_t,q_t)
+\lefteqn{\sup_{j_t} \sum_{i=1}^N \mathop{\ex}_{I_t\sim q_t}\left[(q_t^*)^\top D_i \hat\Delta_t(I_t,j_t,q_t)
     +
-  \mathop{\ex}_{\rho}\left[\sum_{i=1}^N \sup_{\pi} - \pi(x_t)^\top \hat\Delta_t(I_t,j_t,q_t) + A_i(\pi)
+  \mathop{\ex}_{\rho}\left[\sup_{\pi} - \pi(x_t)^\top \hat\Delta_t(I_t,j_t,q_t) + A_i(\pi)
   \right]\right] + (T-t+1)N\gamma}\\
   &\quad =
-    \sup_{j_t} \sum_{i=1}^N\mathop{\ex}_{I_t\sim q_t}\left[\mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top \hat \Delta_t (I_t,j_t,q_t)
+    \sup_{j_t} \sum_{i=1}^N\mathop{\ex}_{I_t\sim q_t}\left[\mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top D_i \hat \Delta_t (I_t,j_t,q_t)
     +
     \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t(I_t,j_t,q_t) + A_i(\pi)\right]\right]\\
   &\quad+ (T-t+1)N\gamma.
@@ -966,17 +975,17 @@ Specifically, every coordinate of $\hat\Delta_t(I_t,j_t,q_t)$  has large probabi
 Therefore, the distribution of $\hat\Delta_t(I_t,j_t,q_t)$ is always in $\triangle_{\mathcal D}'$, and we obtain an upper bound by allowing the adversary to play distributions over a random variable named $\hat\Delta_t$ with distribution in $\triangle_{\mathcal D}'$. With this substitution, $I_t$ and $j_t$ no longer appear in the expression. Suppressing the $(T-t+1)N\gamma$ term, we have
 \begin{align*}
   &\lefteqn{
-        \sup_{j_t } \sum_{i=1}^N\mathop{\ex}_{I_t\sim q_t}\left[\mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top \hat \Delta_t(I_t,j_t,q_t)
+        \sup_{j_t } \sum_{i=1}^N\mathop{\ex}_{I_t\sim q_t}\left[\mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top D_i \hat \Delta_t(I_t,j_t,q_t)
     +
     \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t(I_t,j_t,q_t) + A_i(\pi)\right]\right]
     }\\
   &\leq
     \sup_{p_t\in\triangle_{\mathcal D}'} \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[
-    \sum_{i=1}^N\mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top \hat \Delta_t
+    \sum_{i=1}^N\mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top D_i \hat \Delta_t
     +
     \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]\right]\\
     &\leq
-\mathop{\ex}_{\rho}\left[ \sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^*(\rho)^\top \hat \Delta_t
+\mathop{\ex}_{\rho}\left[ \sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^*(\rho)^\top D_i \hat \Delta_t
     +
   \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]\right].
 \end{align*}
@@ -996,12 +1005,12 @@ For the remainder, fix some $\rho$. We defined
   \]
   and so
   \begin{align*}
-    &\lefteqn{\sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^*(\rho)^\top \hat \Delta_t
+    &\lefteqn{\sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^*(\rho)^\top D_i \hat \Delta_t
     +
   \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]}\\
     &=
       \inf_{q_t}
-      \sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^\top \hat \Delta_t
+      \sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^\top D_i \hat \Delta_t
     +
   \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right].
 \end{align*}
@@ -1013,36 +1022,40 @@ We continue bounding this saddle point problem from above. Noting that the objec
 \begin{align*}
   &\lefteqn{
           \inf_{q_t}
-      \sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^\top \hat \Delta_t
+      \sup_{p_t\in\triangle_{\mathcal D}'}\sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^\top D_i \hat \Delta_t
     +
     \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]
     }\\
   &=
     \sup_{p_t\in\triangle_{\mathcal D}'}
     \inf_{q_t}    
-    \sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^\top \hat \Delta_t
+    \sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^\top D_i \hat \Delta_t
     +
     \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]\\
   &\leq
     \sup_{p_t\in\triangle_{\mathcal D}'}
     \inf_{j}  
-    \sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top \hat \Delta_t
+    \sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top D_i \hat \Delta_t
     +
     \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]\\
   &=
     \sup_{p_t\in\triangle_{\mathcal D}'}
     \sum_{i=1}^N
-    \inf_{j}  \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top \hat \Delta_t\right]
+    \inf_{j}  \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top D_i \hat \Delta_t\right]
     +
 \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[  \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]. 
 \end{align*}
-Because $\pi$ is deterministic, we must have
+Because $\pi$ is deterministic, we must have, for all $i$,
 \[
-  \min_i \ex_{\hat\Delta_t \sim p_t}
-  [e_i^\top\hat\Delta_t]
+  \sum_{i=1}^N \min_j \ex_{\hat\Delta_t \sim p_t}
+  [e_j^\top D_i \hat\Delta_t]
+  =
+  \min_j \ex_{\hat\Delta_t \sim p_t}
+  [e_j^\top\hat\Delta_t]
   \leq
-  \ex_{\hat\Delta_t \sim p_t }[\pi(x_t)^\top\hat\Delta_t]
+  \ex_{\hat\Delta_t \sim p_t }[\pi(x_t)^\top \hat\Delta_t]
   \leq
+  \sum_{i=1}^N
   \ex_{\hat\Delta_t \sim p_t }[\pi(x_t)^\top D_i\hat\Delta_t],
 \]
  which allows us to upper bound the previous expression. Performing the usual symmeterization (using $\epsilon$ as a single Rademacher random variable) yields
@@ -1051,7 +1064,7 @@ Because $\pi$ is deterministic, we must have
     \sup_{p_t\in\triangle_{\mathcal D}'}
     \sum_{i=1}^N \ex_{\hat\Delta_t\sim p_t}\left[
      \sup_{\pi\in\Pi} A_i(\pi)
-    +\min_j \ex_{\hat\Delta_t'\sim p_t}\left[e_j^\top \hat\Delta_t'\right]
+    +\min_j \ex_{\hat\Delta_t'\sim p_t}\left[e_j^\top D_i \hat\Delta_t'\right]
     -\pi(x_t)^\top D_i \hat\Delta_t
   \right]
   }\\
