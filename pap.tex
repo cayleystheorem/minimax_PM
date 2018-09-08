@@ -1037,17 +1037,17 @@ We continue bounding this saddle point problem from above. Noting that the objec
     \inf_{j}  
     \sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top D_i \hat \Delta_t
     +
-    \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]\\
-  &=
-    \sup_{p_t\in\triangle_{\mathcal D}'}
-    \sum_{i=1}^N
-    \inf_{j}  \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top D_i \hat \Delta_t\right]
-    +
-\mathop{\ex}_{\hat\Delta_t\sim p_t}\left[  \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]. 
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right].
+%   &=
+%     \sup_{p_t\in\triangle_{\mathcal D}'}
+%     \sum_{i=1}^N
+%     \inf_{j}  \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top D_i \hat \Delta_t\right]
+%     +
+% \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[  \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]. 
 \end{align*}
 Because $\pi$ is deterministic, we must have, for all $i$,
 \[
-  \sum_{i=1}^N \min_j \ex_{\hat\Delta_t \sim p_t}
+  \min_j \sum_{i=1}^N \ex_{\hat\Delta_t \sim p_t}
   [e_j^\top D_i \hat\Delta_t]
   =
   \min_j \ex_{\hat\Delta_t \sim p_t}
@@ -1061,13 +1061,19 @@ Because $\pi$ is deterministic, we must have, for all $i$,
  which allows us to upper bound the previous expression. Performing the usual symmeterization (using $\epsilon$ as a single Rademacher random variable) yields
 \begin{align*}
   &\lefteqn{
+        \sup_{p_t\in\triangle_{\mathcal D}'}
+    \inf_{j}  
+    \sum_{i=1}^N \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top D_i \hat \Delta_t
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top D_i\hat\Delta_t + A_i(\pi)\right]
+    }\\
+    &\leq
     \sup_{p_t\in\triangle_{\mathcal D}'}
-    \sum_{i=1}^N \ex_{\hat\Delta_t\sim p_t}\left[
-     \sup_{\pi\in\Pi} A_i(\pi)
-    +\min_j \ex_{\hat\Delta_t'\sim p_t}\left[e_j^\top D_i \hat\Delta_t'\right]
+      \sum_{i=1}^N \ex_{\hat\Delta_t\sim p_t}\left[
+      \ex_{\hat\Delta_t'\sim p_t}\left[\pi(x_t)^\top D_i \hat\Delta_t'\right]
+     +\sup_{\pi\in\Pi} A_i(\pi)
     -\pi(x_t)^\top D_i \hat\Delta_t
-  \right]
-  }\\
+  \right]\\
   &\leq
     \sup_{p_t\in\triangle_{\mathcal D}'}
     \sum_{i=1}^N \ex_{\hat\Delta_t\sim p_t}\left[
@@ -1767,18 +1773,12 @@ If $\ex_1\left[N_0(T)\right] \geq T^{2/3}$, then the desired bound follows immed
 with the term in the exponential approaching 0. Since $\epsilon$ is a decreasing sequence, all the assumptions that $\epsilon$ is smaller than certain quantities will eventually be satisfied.
 \end{proof}
 
-\iffalse
-\paragraph{A detail}\todo{remove this paragraph}
-While the regret bound, proven w.r.t. the two policies $\pi_1$ and $\pi_2$ and all fixed actions, 
-In particular, there exist a policy that is better that $\pi_1$ and $\pi_2$: the one that switches exactly correctly at $\beta$. To fix this, we can instead define
+\section{Structured relaxation}
+The partial monitoring problem allows us to write $\Delta_t = V(I_t) S_{I_t} e_{j_t}$ (for some appropriate matrices $V(1),\ldots, V(N)$) and therefore form the unbiased estimate
 \[
-  P_1 = q_1 \mathds{1}\{x \leq \beta-\beta_2\} + q_2 \mathds{1}\{x \geq \beta+\beta_1\}
-  + \frac{q_1+q_2}{2}\mathds{1}\{\beta-\beta_2\leq x \leq \beta+\beta_1\}
+  \hat\Delta_t = V(I_t) Y_t X_t
 \]
-and analogously for $P_2$. Then the ``perfect policy'' from before does not do any better than $\pi_1$ or $\pi_2$ in expectation.
+where $X_t \sim\text{Bern}\left(\frac{\gamma}{V_\infty} \frac{\Vert V(I_t)^\top Y_t \Vert}{q_t(I_t)}\right)$. The proof for unbiasedness is essentially the same as for the previous relaxation. In particular, $\hat\Delta_t$ can only take on $NM+1$ different values enumerated by the set $U = \{ V(i) S_i e_j: i\in\underbar N, j \in\underbar M\}\cup 0$. Let $u_1,\ldots, u_k$ be an enumeration of this set. 
 
-Unfortunately, this set of alternatives does not have the nice property that the feedback distribution of playing $\pi_1$ under $P_1$ and $P_2$ is identical; there is some small change from $S_1 q_a$ to $S_1 q_b$. It might be possible to balance terms and control the regret.
-\fi
-
-
+  
 \end{document}
