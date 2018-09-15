@@ -40,12 +40,14 @@
 
 \usepackage{xcolor}
 \usepackage{tikz}
-%\usepackage[colorinlistoftodos, textwidth=26mm, shadow,color=blue!30!white]{todonotes}
-\usepackage[disable]{todonotes}
 
 \usepackage{algorithmic, algorithm}
 \usepackage{hyperref}
 \usepackage{wrapfig}
+
+\usepackage[colorinlistoftodos, textwidth=26mm, shadow,color=blue!30!white]{todonotes}
+%\usepackage[disable]{todonotes}
+
 
 \newcommand{\KL}{\mathrm{KL}}
 \newcommand{\rank}{\mathrm{rank}}
@@ -1774,11 +1776,383 @@ with the term in the exponential approaching 0. Since $\epsilon$ is a decreasing
 \end{proof}
 
 \section{Structured relaxation}
-The partial monitoring problem allows us to write $\Delta_t = V(I_t) S_{I_t} e_{j_t}$ (for some appropriate matrices $V(1),\ldots, V(N)$) and therefore form the unbiased estimate
+The partial monitoring problem allows us to write $\Delta_t = V(I_t) S_{I_t} e_{j_t}$ (for some appropriate matrices $V(1),\ldots, V(N)$) and therefore form the unbiased estimate \todo{either assume that $V(I_t)Y_t$ is never zero or resolve this case}
 \[
-  \hat\Delta_t = V(I_t) Y_t X_t
+  \hat\Delta_t = \frac{V(I_t) Y_t}{\Vert V(I_t) Y_t\Vert}  Z_t \frac{ V_\infty}{\gamma}
 \]
-where $X_t \sim\text{Bern}\left(\frac{\gamma}{V_\infty} \frac{\Vert V(I_t)^\top Y_t \Vert}{q_t(I_t)}\right)$. The proof for unbiasedness is essentially the same as for the previous relaxation. In particular, $\hat\Delta_t$ can only take on $NM+1$ different values enumerated by the set $U = \{ V(i) S_i e_j: i\in\underbar N, j \in\underbar M\}\cup 0$. Let $u_1,\ldots, u_k$ be an enumeration of this set. 
+where $Z_t \sim\text{Bern}\left(\frac{\gamma}{V_\infty} \frac{\Vert V(I_t)^\top Y_t \Vert}{q_t(I_t)}\right)$.
 
-  
+
+Two important properties of the unbiased loss estimate must hold. First, it must be unbiased. Treating $j_t$ like a constant and recalling that $Y_t = S_{I_t} e_{j_t}$,
+\begin{align*}
+  \ex_{I_t, Z_t}\left[ \hat\Delta_t \right]
+  &=
+    \ex_{I_t}\left[
+    \frac{V(I_t) S_{I_t} e_{j_t}}{\Vert V(I_t) S_{I_t} e_{j_t} \Vert}  \ex[Z_t|I_t] \frac{ V_\infty}{\gamma}
+    \right]
+  \\
+  &=
+    \ex_{I_t}\left[
+    \frac{V(I_t) S_{I_t} e_{j_t}}{\Vert V(I_t) S_{I_t} e_{j_t}\Vert}  \frac{\gamma}{V_\infty} \frac{\Vert V(I_t) S_{I_t} e_{j_t} \Vert}{q_t(I_t)}
+    \frac{ V_\infty}{\gamma}
+    \right]
+  \\
+  &=
+    \ex_{I_t}\left[
+    \frac{V(I_t) S_{I_t} e_{j_t}}{q_t(I_t)}
+    \right]
+  \\
+  &=
+    \Delta_t.
+\end{align*}
+
+Second, it must have large probability of being zero. Calculating,
+\begin{align*}
+  P(Z_t = 0)
+  &=
+    \sum_{i=1}^N
+    q_t(i)
+    \left( 1 - \frac{\gamma}{V_\infty} \frac{\Vert V(i) S_i e_{j_t} \Vert}{q_t(i)} \right)
+  \\
+  &=
+    1-
+    \sum_{i=1}^N
+    \frac{\gamma}{V_\infty} \Vert V(i)S_i e_{j_t}  \Vert
+  \\
+  &\geq
+  1-N \gamma.
+\end{align*}
+
+
+Another property is that $\hat\Delta_t$ can only take on $NM+1$ different values enumerated by the set $U = \{ V(i) S_i e_j: i\in\underbar N, j \in\underbar M\}\cup 0$, and let $\overline U_j = \{ \frac{V_\infty V(i)S_i e_j}{\gamma \Vert V(i)S_i e_j \Vert}: i\in\underbar N \}$ be the enumeration of all directions $\hat\Delta_t$ could take if the adversary chooses action $j$. To summarize, $\hat\Delta_t$ is unbiased  and, for every $j_t$, takes values in the set
+$\overline U_j$ and has probability at least $1-N\gamma$ of being zero.
+
+Hence, when we relax the optimization around $\hat\Delta_t$, we can relax it to $p_t \in \triangle_{\mathcal D}'$, where $\triangle_{\mathcal D}'$ is equal to the distributions over $\bigcup_j \overline U_j$ with $p_t(0) \geq 1-N\gamma$.
+
+For the sequel, redefine the following notation (this, once this proof is verified, it will be easier to just slot in).
+Let $\hat\Delta_t$ have the form above, and let $\overline U = \bigcup_j \overline U_j$ with $K := |\overline U|$. We will enumerate $\overline U$ with $u_1,\ldots, u_K$, and use $\U$ to denote the matrix with these columns. Finally, let $\eepsilon_t$ and $\Z_t$ be random diagonal matries with $K$ independent Rademacher random variables on the diagonal and $K$ independent random variables with value $V_\infty \gamma^{-1}$ with probability $N\gamma$ and $0$ otherwise.
+
+We will also say that $\delta\in \{ -1,0,1\}$ is a \emph{Lazy Rademacher} random variable with parameter $a$ if $p(\delta=0) = a$ and $p(\delta = -1) = p(\delta = 1) = \frac{1-a}{2}$. 
+
+Finally, define
+\[
+  R(\hist^{t-1},\rho_t) =
+        \sup_{\pi\in\Pi}
+      -
+      \sum_{s=1}^{t} \pi(x_s)^\top \hat\Delta_s
+      -
+      \sum_{s=t+1}^{T} 2 \pi(x_s)^\top \eepsilon_{s}\Z_s \U
+      + (T-t)\gamma.
+  \]
+We can then prove:
+\begin{theorem}\label{thm:admissibility_new}  
+  The relaxation
+  \begin{align}
+    \rel(\hist^{t-1})
+    &= \exop_{
+      \rho_t}
+      \left[
+      R(\hist_{t-1},\rho_t)
+      \right]
+      \label{eqn:relaxation.def}
+  \end{align}
+  and the strategy that samples $\rho_t = \bigcup_{s \in t+1:T} \{x_{s},\eepsilon_{s},\Z_{s}\}$ and plays  $q_t= (1-N\gamma)q_t^* + \gamma \ones$ for
+\begin{align}
+  q_t^*
+  &=
+  \argmin_{q \in \triangle_{N}}
+  \sup_{p_t \in \triangle_{\mathcal D}'} 
+    \exop_{\hat\Delta_t \sim p_t}\left[
+    q^\top\hat\Delta_t
+    +   R\left(\hist^{t-1},\rho_t\right)\right]
+  \label{eqn:strategy.def}
+\end{align}
+are admissible.
+\end{theorem}
+
+\begin{proof}[Proof of Theorem~\ref{thm:admissibility}]
+  The base case is a consequence of the unbiasness of $\hat\Delta_t$.Using the convexity of supremum and the unbiasedness of $\hat\Delta_t$, we have 
+  \begin{align*}
+  \ex_{I_{1:T},\hat Z_{1:T}}\left[
+  \rel(\hist^T)
+  \right]
+  &=
+    \ex_{I_{1:T},\hat Z_{1:T}}\left[
+    \sup_{\pi\in\Pi}
+    -\sum_{s=1}^T \pi(x_t)^\top \hat \Delta_t
+    \right]\\
+  &\geq
+    \sup_{\pi\in\Pi}
+    \sum_{s=1}^T
+    \ex_{I_{1:T},\hat Z_{1:T}}\left[
+    - \pi(x_t)^\top \hat \Delta_t
+    \right]\\
+  &=
+    \sup_{\pi\in\Pi}
+    -\sum_{s=1}^T \pi(x_t)^\top \Delta_t.
+  \end{align*}
+
+  We now check the inductive step. We define $\rho = (x_t,\eepsilon_t,\Z_t)_{t+1:T}$ to the collection of random variables in the relaxation. Recall that our aim is to prove admissibility of the strategy $q_t(\rho) = (1-N\gamma)q_t^*(\rho)+ \gamma \ones$ where $q_t^*(\rho)$ was defined by
+  \begin{align*}
+  q_t^*(\rho)
+  &=
+  \argmin_{q \in \triangle_{N}}
+  \sup_{p_t \in \triangle_{\mathcal D}'} 
+    \exop_{\hat\Delta_t \sim p_t}\left[
+    q^\top\hat\Delta_t
+    + R\left(\hist^{t},\rho\right)
+    \right].
+\end{align*}
+By construction, no entry of $q_t(\rho)$ is below $\gamma$. It is then easy to check that, for $q_t^* = \ex_{\rho}[q_t^*(\rho)]$ and $q_t = \ex_{\rho}[q_t(\rho)]$,
+\begin{align*}
+  \ex_{I_t \sim q_t}\left[ e_{I_t}^\top \Delta_t \right] = q_t^\top \Delta_t^\top 
+  \leq (q_t^*)^\top \Delta_t + N\gamma
+  =  
+  \ex_{I_t\sim q_t} \left[(q_t^*)^\top \hat\Delta_t(I_t,j_t,q_t)^\top \right] + N\gamma,
+\end{align*}
+where we have been explicit that $\hat\Delta_t(I_t,j_t,q_t)$ is a random variable that depends on the player actions and the $q_t$ (since $\Z_t$'s distribution is a function of $q_t$). 
+
+For every fixed $x_t$, we can apply the above inequality and unpack the definition of the relaxation to find
+\begin{align*}
+\lefteqn{  \sup_{j_t} \mathop{\ex}_{I_t\sim q_t}\left[e_{I_t}^\top\hat\Delta_t(I_t,j_t,q_t)
+  +  \rel(\hist^t) \right]}&\\
+  &=
+    \sup_{j_t } \mathop{\ex}_{I_t\sim q_t}\left[e_{I_t}^\top\hat\Delta_t(I_t,j_t,q_t)
+    +  \exop_\rho\left[R\left(\hist^{t},\rho\right)\right]\right]
+    + (T-t)N\gamma\\
+  &\leq
+    \sup_{j_t}  \mathop{\ex}_{I_t\sim q_t}\left[(q_t^*)^\top \hat\Delta_t(I_t,j_t,q_t)
+    +
+  \exop_\rho\left[R\left(\hist^{t},\rho\right)\right]\right]
+  +(T-t+1)N\gamma.
+\end{align*}
+Defining $A(\pi) = -\sum_{s=1}^{t-1} \pi(x_s)^\top \hat \Delta_s - \sum_{s=t+1}^T 2\pi(x_s)^\top  \eepsilon_{s} \Z_{s}$, the previous line is equal to
+\begin{align*}
+    \sup_{j_t} \mathop{\ex}_{I_t\sim q_t}\left[\mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top \hat \Delta_t (I_t,j_t,q_t)
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top \hat\Delta_t(I_t,j_t,q_t) + A(\pi)\right]\right] + (T-t+1)N\gamma.
+\end{align*}
+This optimization is intractable without strong assumptions on $\Pi$; the $j_t$ optimization needs to account for how the supremum over the policy class will be affected. Therefore, we reduce the constraints on the adversary to relax the problem by allowing play of distributions over $\hat\Delta_t$ instead of constraining the $\hat\Delta_t$ to correspond to a specific choice of $I_t,j_t$, and $q_t$.
+
+We carefully defined $\hat\Delta_t(I_t,j_t,q_t)$ so that it would take on finite support and have a large probability of being zero. Conditioning on $\rho$, we can calculate
+\begin{align*}
+  P(\hat\Delta_t = 0)
+  &=
+    \sum_{i=1}^N
+    q_t(i)
+    \left( 1 - \frac{\gamma}{V_\infty} \frac{\Vert V(i) S_i e_{j_t} \Vert}{q_t(i)} \right)
+  \\
+  &=
+    1-
+    \sum_{i=1}^N
+    \frac{\gamma}{V_\infty} \Vert V(i)S_i e_{j_t}  \Vert
+  \\
+  &\geq
+  1-N \gamma.
+\end{align*}
+Therefore, the distribution of $\hat\Delta_t(I_t,j_t,q_t)$ is always in $\triangle_{\mathcal D}'$, and we obtain an upper bound by allowing the adversary to play distributions over a random variable named $\hat\Delta_t$ with distribution in $\triangle_{\mathcal D}'$. With this substitution, $I_t$ and $j_t$ no longer appear in the expression. Suppressing the $(T-t+1)N\gamma$ term, we have
+\begin{align*}
+  &\lefteqn{
+        \sup_{j_t } \mathop{\ex}_{I_t\sim q_t}\left[\mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top \hat \Delta_t(I_t,j_t,q_t)
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top\hat\Delta_t(I_t,j_t,q_t) + A(\pi)\right]\right]
+    }\\
+  &\leq
+    \sup_{p_t\in\triangle_{\mathcal D}'} \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[
+    \mathop{\ex}_{\rho}\left[ q_t^*(\rho)^\top  \hat \Delta_t
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top \hat\Delta_t + A(\pi)\right]\right]\\
+    &\leq
+\mathop{\ex}_{\rho}\left[ \sup_{p_t\in\triangle_{\mathcal D}'} \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^*(\rho)^\top  \hat \Delta_t
+    +
+  \sup_{\pi\in\Pi} -\pi(x_t)^\top \hat\Delta_t + A(\pi)\right]\right].
+\end{align*}
+Our ability to move the expectation over $\rho$ to the outside allows us to obtain the same bound in expectation by sampling a single $\rho$ and playing $q_t(\rho)$ instead of calculating the infimum over $q$. 
+
+For the remainder, fix some $\rho$. We defined
+\[
+  q_t^*(\rho)
+  =
+  \argmin_{q \in \triangle_{N}}
+  \sup_{p_t \in \triangle_{\mathcal D}'}
+  \ex_{\hat\Delta_t\sim p_t}\left[
+  q^\top \hat \Delta_t
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top \hat\Delta_t + A(\pi)\right],
+  \]
+  and so
+  \begin{align*}
+    &\lefteqn{\sup_{p_t\in\triangle_{\mathcal D}'} \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^*(\rho)^\top  \hat \Delta_t
+    +
+  \sup_{\pi\in\Pi} -\pi(x_t)^\top \hat\Delta_t + A(\pi)\right]}\\
+    &=
+      \inf_{q_t}
+      \sup_{p_t\in\triangle_{\mathcal D}'} \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^\top  \hat \Delta_t
+    +
+      \sup_{\pi\in\Pi} -\pi(x_t)^\top \hat\Delta_t + A(\pi)\right]\\
+      &=
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \inf_{q_t}    
+        \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ q_t^\top  \hat \Delta_t
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top \hat\Delta_t + A(\pi)\right]\\
+  &\leq
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+    \inf_{j}  
+    \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top  \hat \Delta_t
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top \hat\Delta_t + A(\pi)\right].
+  \end{align*}
+
+Because $\pi$ is deterministic, we must have, for all $i$,
+\[
+  \min_j \ex_{\hat\Delta_t \sim p_t}
+  [e_j^\top \hat\Delta_t]
+  =
+  \min_j \ex_{\hat\Delta_t \sim p_t}
+  [e_j^\top\hat\Delta_t]
+  \leq
+  \ex_{\hat\Delta_t \sim p_t }[\pi(x_t)^\top \hat\Delta_t],
+\]
+which allows us to upper bound the previous expression. Performing the usual symmeterization (using $\epsilon$ as a single Rademacher random variable) yields
+\begin{align*}
+  &\lefteqn{
+        \sup_{p_t\in\triangle_{\mathcal D}'}
+    \inf_{j}  
+    \mathop{\ex}_{\hat\Delta_t\sim p_t}\left[ e_j^\top  \hat \Delta_t
+    +
+    \sup_{\pi\in\Pi} -\pi(x_t)^\top \hat\Delta_t + A(\pi)\right]
+    }\\
+    &\leq
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+     \ex_{\hat\Delta_t\sim p_t}\left[
+      \ex_{\hat\Delta_t'\sim p_t}\left[\pi(x_t)^\top  \hat\Delta_t'\right]
+     +\sup_{\pi\in\Pi} A(\pi)
+    -\pi(x_t)^\top  \hat\Delta_t
+  \right]\\
+  &\leq
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+     \ex_{\hat\Delta_t\sim p_t}\left[
+     \sup_{\pi\in\Pi} A(\pi)
+    +\ex_{\hat\Delta_t'\sim p_t}\left[\pi(x_t)^\top  \hat\Delta_t'\right]
+    -\pi(x_t)^\top  \hat\Delta_t
+  \right]\\
+  &\leq
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+     \ex_{\hat\Delta_t\sim p_t, \hat\Delta_t'\sim p_t}\left[
+        \sup_{\pi\in\Pi} A(\pi)+
+        \pi(x_t)^\top \left(\hat\Delta_t'-\hat\Delta_t\right)
+    \right]\\
+  &=
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+     \ex_{\hat\Delta_t\sim p_t, \hat\Delta_t'\sim p_t,\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A(\pi)+
+        \epsilon\pi(x_t)^\top \left(\hat\Delta_t'-\hat\Delta_t\right)
+    \right]\\
+    &\leq
+    \sup_{p_t\in\triangle_{\mathcal D}'}
+     \ex_{\hat\Delta_t\sim p_t,\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A(\pi)+
+        2\epsilon\pi(x_t)^\top \hat\Delta_t
+        \right].
+\end{align*}
+
+Next, we will upper bound the previous expression for all $p_t$. Condition on $\hat \Delta_t= u_i$ and define the random variable $Y = \sum_{j\neq i} u_i + \delta_j u_j$, where $\delta_j$ is a Lazy Rademacher random variable with parameter $N\gamma$. We clearly have $\ex[Y|\hat \Delta_t] = u_i$ and $\epsilon Y \stackrel{\mathcal L}{=} \sum_{i=1}^K \delta_i u_i$.
+
+
+Since $\hat\Delta_t = e_i \hat\Delta_t(i)$, each term in the sum only involves one coordinate if $\hat\Delta_t$. Therefore, it is without loss of generality to assume that $p_t$ is a product distribution. Using $\triangle_{\{0,V_\infty \gamma^{-1}\}}$ to denote distributions over the singletons $0$ and $V_\infty\gamma^{-1}$, define 
+\[
+  \triangle_1' := \left\{ p \in \triangle_{\{0,V_\infty \gamma^{-1}\}}: p(0)\geq 1-N\gamma\right\}
+\]
+and observe that if $\hat\Delta_t\sim p_t\in\triangle_{\mathcal D'}$, then $\epsilon_i X_i e_t \stackrel{\mathcal L}{=} \hat\Delta_t(i)$ for some $X_i\sim p_i\in\triangle_1'$. We then have 
+\begin{align*}
+  \sup_{p_t\in\triangle_{\mathcal D}'}
+    \sum_{i=1}^N \ex_{\hat\Delta_t\sim p_t,\epsilon}\left[
+        \sup_{\pi\in\Pi} A(\pi)+
+        2\epsilon\pi(x_t)^\top D_i \hat\Delta_t
+  \right]
+  &=
+      \sup_{p_1,\ldots,p_N \in\triangle_1'}
+    \sum_{i=1}^N \ex_{X_i\sim p_i,\epsilon_{1:N}}\left[
+        \sup_{\pi\in\Pi} A(\pi)+
+        2\pi(x_t)^\top e_i \epsilon_i X_i
+    \right]\\
+      &=
+        \sum_{i=1}^N
+        \sup_{p_i \in\triangle_1'}
+        \ex_{X_i\sim p_i,\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A(\pi)+
+        2\pi(x_t)^\top e_i \epsilon_i X_i
+    \right].
+\end{align*}
+
+We will now argue that a witness to the supremum of 
+\begin{align*}
+    \sup_{p_i\in\triangle_1'}
+  \ex_{X_i\sim p_i,\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\pi(x_t)^\top e_i \epsilon_i X_i
+        \right]
+\end{align*}
+is the distribution that puts mass $N\gamma$ on $V_\infty\gamma^{-1}$ and the rest on $0$. Define the convex function 
+$g(x) :=  \sup_{\pi\in\Pi} A_i(\pi)+ 2\pi(x_t)^\top e_i x$. The expectation $\ex_{\epsilon}\left[ g(\epsilon x)\right]$ is increasing on $x\geq 0$. To see this, consider some $0\leq a<b$. We can write $a = \theta b + (1-\theta)(-b)$ for some $\theta$ and use the definition of convexity to conclude 
+ \begin{align*}
+   \ex_{\epsilon}\left[ g(\epsilon a) \right]
+   = 
+   \frac{g(a)+g(-a)}{2}
+   \leq
+   \frac{\theta g(b)+(1-\theta)g(-b)
+   +(1-\theta) g(b)+\theta g(-b)
+   }{2}
+   =
+   \ex_{\epsilon}\left[ g(\epsilon b) \right].
+ \end{align*}
+ Since $\ex_{\epsilon}\left[ g(\epsilon x)\right]$ is increasing, the supremum of $p_i$ puts maximum mass on $V_\infty\gamma^{-1}$. Hence, defining the random vector $Z_{t}$ with elements $P(Z_{t,i} = 0) = 1-N\gamma$ and $P( Z_{t,i} = V_\infty\gamma^{-1}) = N\gamma$, we have
+ \begin{align*}
+    \sup_{p\in\triangle_1'}
+  \ex_{X_i\sim p,\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\pi(x_t)^\top e_i \epsilon_i X_i
+        \right]
+   &=
+  \ex_{\epsilon_i}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\epsilon_i\pi(x_t)^\top D_i \Z_t
+   \right]\\
+      &=
+  \ex_{\eepsilon_t}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\pi(x_t)^\top \eepsilon_{t,i} \Z_t
+        \right].
+\end{align*}
+
+In total, we have shown that, for every fixed $x_t$ and $\rho$, playing $q_t(\rho)$ allows the bound
+\begin{align*}
+    \sup_{j_t} \mathop{\ex}_{I_t\sim q_t}\left[ e_{I_t}^\top \Delta_t
+  + \rel(\hist^t)\right]
+  &\leq
+    \ex_\rho \left[
+  \ex_{\epsilon_t, \Z_t}\left[
+  \sum_{i=1}^N
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\pi(x_t)^\top \eepsilon_{t,i} \Z_t
+  \right]
+  \right]
+  + (T-t+1)N\gamma\\
+  &=
+  \rel(\hist^{t-1}),
+\end{align*}
+as required.
+\end{proof}
+
+The proof of admissibility seems to be unchanged until the line
+\[
+      \sup_{p_t\in\triangle_{\mathcal D}'}
+      \ex_{\hat\Delta_t\sim p_t,\epsilon}\left[
+        \sup_{\pi\in\Pi} A_i(\pi)+
+        2\epsilon\pi(x_t)^\top
+        \hat\Delta_t
+      \right]
+\]
+
 \end{document}
